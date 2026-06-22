@@ -145,3 +145,101 @@ a { color: inherit; }
   margin-top: 10px;
   min-height: 18px;
 }
+
+.success-msg {
+  color: var(--success);
+  font-size: 13px;
+  margin-top: 10px;
+  min-height: 18px;
+}
+
+/* --- Topbar (condivisa, iniettata da layout.js) --- */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 10;
+}
+
+/* --- Bottom nav: pensata per il pollice, su mobile --- */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding-bottom: env(safe-area-inset-bottom);
+  z-index: 10;
+}
+.bottom-nav-item {
+  flex: 1;
+  text-align: center;
+  padding: 14px 4px 10px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  text-decoration: none;
+  border-top: 2px solid transparent;
+}
+.bottom-nav-item.active {
+  color: var(--accent);
+  border-top-color: var(--accent);
+}
+
+/* Lascia spazio in fondo alla pagina per non finire sotto la bottom-nav */
+.page-content {
+  padding-bottom: 88px;
+}
+
+/* --- Tabella semplice per liste (progetti, team, ecc.) --- */
+.list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+.list-row:last-child { border-bottom: none; }
+.list-row-title { font-weight: 600; font-size: 15px; }
+.list-row-sub { font-size: 13px; color: var(--text-dim); margin-top: 2px; }
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  margin: 32px 0 14px;
+}
+.section-title:first-of-type { margin-top: 0; }
+
+.tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 5px;
+}
+.tag-admin { color: var(--accent); background: var(--accent-soft); border: 1px solid var(--accent-dim); }
+.tag-pm { color: var(--warning); background: rgba(224,169,62,0.12); border: 1px solid rgba(224,169,62,0.4); }
+.tag-operatore { color: var(--success); background: rgba(79,174,126,0.12); border: 1px solid rgba(79,174,126,0.4); }
+
+.helper-card {
+  background: var(--surface-raised);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+.helper-card strong { color: var(--text); }

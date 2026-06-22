@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Team · Video Agency Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+<style>
+  .wrap { max-width: 720px; margin: 0 auto; padding: 32px 20px; }
+  .page-title { font-family: var(--font-display); font-size: 24px; margin-bottom: 6px; }
+</style>
+</head>
+<body>
+
+<div class="wrap page-content">
+  <h1 class="page-title">Team</h1>
+  <p style="color:var(--text-dim); margin-bottom: 24px;">Project manager e operatori dell'agenzia</p>
+
+  <div class="helper-card">
+    <strong>Come aggiungere un nuovo membro:</strong><br>
+    1. Vai su Supabase → Authentication → Users → Add user, crea l'account con email e password.<br>
+    2. Copia il suo UID dalla lista utenti.<br>
+    3. Incollalo qui sotto insieme a nome e ruolo: comparirà subito nell'app.
+  </div>
+
+  <div class="card">
+    <form id="member-form">
+      <div class="field">
+        <label for="uid">UID utente (da Supabase Authentication)</label>
+        <input type="text" id="uid" required placeholder="es. a1b2c3d4-...">
+      </div>
+      <div class="field">
+        <label for="full_name">Nome e cognome</label>
+        <input type="text" id="full_name" required placeholder="es. Marco Rossi">
+      </div>
+      <div class="field">
+        <label for="role">Ruolo</label>
+        <select id="role" required>
+          <option value="">Seleziona...</option>
+          <option value="project_manager">Project Manager</option>
+          <option value="operatore">Operatore</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%;">Aggiungi al team</button>
+      <p class="error-msg" id="error-msg"></p>
+      <p class="success-msg" id="success-msg"></p>
+    </form>
+  </div>
+
+  <div class="section-title">Membri attuali</div>
+  <div class="card" id="members-list">
+    <p style="color:var(--text-dim); font-size:14px;">Caricamento...</p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/layout.js"></script>
+<script>
+  let currentProfile = null;
+
+  (async () => {
+    await requireAuth();
+    currentProfile = await getCurrentProfile();
+    if (!requireRole(currentProfile, ["admin"])) return;
+
+    renderShell(currentProfile, "team");
+    loadMembers();
+  })();
+
+  async function loadMembers() {
+    const { data, error } = await supabaseClient
+      .from("profiles")
+      .select("*")
+      .order("full_name");
+
+    const container = document.getElementById("members-list");
+
+    if (error) {
+      container.innerHTML = `<p class="error-msg">Errore nel caricamento: ${error.message}</p>`;
+      return;
+    }
+
+    if (!data.length) {
+      container.innerHTML = `<p style="color:var(--text-dim); font-size:14px;">Nessun membro ancora.</p>`;
+      return;
+    }
+
+    const tagClass = { admin: "tag-admin", project_manager: "tag-pm", operatore: "tag-operatore" };
+
+    container.innerHTML = data.map(m => `
+      <div class="list-row">
+        <div class="list-row-title">${m.full_name}</div>
+        <span class="tag ${tagClass[m.role]}">${m.role.replace("_", " ")}</span>
+      </div>
+    `).join("");
+  }
+
+  document.getElementById("member-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const errorMsg = document.getElementById("error-msg");
+    const successMsg = document.getElementById("success-msg");
+    errorMsg.textContent = "";
+    successMsg.textContent = "";
+
+    const uid = document.getElementById("uid").value.trim();
+    const full_name = document.getElementById("full_name").value.trim();
+    const role = document.getElementById("role").value;
+
+    const submitBtn = document.getElementById("submit-btn");
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Aggiunta in corso...";
+
+    const { error } = await supabaseClient
+      .from("profiles")
+      .insert({ id: uid, full_name, role });
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Aggiungi al team";
+
+    if (error) {
+      errorMsg.textContent = "Errore: controlla che l'UID sia corretto e non già usato. (" + error.message + ")";
+      return;
+    }
+
+    successMsg.textContent = `${full_name} aggiunto con successo!`;
+    document.getElementById("member-form").reset();
+    loadMembers();
+  });
+</script>
+</body>
+</html>

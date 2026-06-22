@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard · Video Agency Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+<style>
+  .wrap { max-width: 720px; margin: 0 auto; padding: 32px 20px; }
+  .welcome h1 { font-family: var(--font-display); font-size: 26px; margin-bottom: 4px; }
+</style>
+</head>
+<body>
+
+<div class="wrap page-content">
+  <div class="welcome">
+    <h1 id="welcome-name">Ciao 👋</h1>
+    <p style="color:var(--text-dim)">Il tuo spazio di lavoro</p>
+    <span class="tag" id="role-tag">RUOLO</span>
+  </div>
+
+  <div id="admin-shortcuts" style="display:none; margin-top:28px;">
+    <div class="section-title">Strumenti admin</div>
+    <a href="projects.html" class="card" style="display:block; margin-bottom:12px; text-decoration:none;">
+      <div class="list-row-title">Gestisci progetti e contratti</div>
+      <div class="list-row-sub">Crea nuovi clienti, definisci il perimetro contrattuale</div>
+    </a>
+    <a href="team.html" class="card" style="display:block; text-decoration:none;">
+      <div class="list-row-title">Gestisci il team</div>
+      <div class="list-row-sub">Aggiungi project manager e operatori</div>
+    </a>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/layout.js"></script>
+<script>
+  (async () => {
+    await requireAuth();
+    const profile = await getCurrentProfile();
+
+    if (!profile) {
+      document.getElementById("welcome-name").textContent = "Profilo non trovato";
+      document.getElementById("role-tag").textContent = "Contatta l'admin";
+      return;
+    }
+
+    renderShell(profile, "dashboard");
+
+    document.getElementById("welcome-name").textContent = `Ciao, ${profile.full_name} 👋`;
+    const roleTag = document.getElementById("role-tag");
+    roleTag.textContent = profile.role.replace("_", " ").toUpperCase();
+    roleTag.classList.add(profile.role === "admin" ? "tag-admin" : profile.role === "project_manager" ? "tag-pm" : "tag-operatore");
+
+    if (profile.role === "admin") {
+      document.getElementById("admin-shortcuts").style.display = "block";
+    }
+  })();
+</script>
+</body>
+</html>

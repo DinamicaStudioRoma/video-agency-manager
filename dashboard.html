@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard · Video Agency Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+<style>
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 40px 24px; }
+  .welcome h1 { font-family: var(--font-display); font-size: 26px; margin-bottom: 4px; }
+  .role-tag {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border: 1px solid var(--accent-dim);
+    border-radius: 5px;
+    padding: 4px 8px;
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand"><span class="rec-dot"></span> ON SET</div>
+  <button class="btn btn-ghost" id="logout-btn">Esci</button>
+</div>
+
+<div class="wrap">
+  <div class="welcome">
+    <h1 id="welcome-name">Ciao 👋</h1>
+    <p style="color:var(--text-dim)">Il tuo spazio di lavoro è quasi pronto.</p>
+    <span class="role-tag" id="role-tag">RUOLO</span>
+  </div>
+
+  <div class="card" style="margin-top:32px;">
+    <p style="color:var(--text-dim); font-size:14px; line-height:1.6;">
+      ✅ Il login funziona correttamente — sei autenticato e il tuo profilo è stato letto dal database.<br><br>
+      Nei prossimi passaggi qui troverai: il calendario degli shooting, i prodotti video da consegnare,
+      e — se sei admin — la gestione dei progetti e dei contratti.
+    </p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-client.js"></script>
+<script>
+  (async () => {
+    await requireAuth();
+    const profile = await getCurrentProfile();
+
+    if (!profile) {
+      document.getElementById("welcome-name").textContent = "Profilo non trovato";
+      document.getElementById("role-tag").textContent = "Contatta l'admin";
+      return;
+    }
+
+    document.getElementById("welcome-name").textContent = `Ciao, ${profile.full_name} 👋`;
+    document.getElementById("role-tag").textContent = profile.role.replace("_", " ").toUpperCase();
+  })();
+
+  document.getElementById("logout-btn").addEventListener("click", async () => {
+    await supabaseClient.auth.signOut();
+    window.location.href = "index.html";
+  });
+</script>
+</body>
+</html>

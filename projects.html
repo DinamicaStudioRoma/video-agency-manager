@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Progetti · Video Agency Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+<style>
+  .wrap { max-width: 720px; margin: 0 auto; padding: 32px 20px; }
+  .page-title { font-family: var(--font-display); font-size: 24px; margin-bottom: 6px; }
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 480px) { .row-2 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<div class="wrap page-content">
+  <h1 class="page-title">Progetti &amp; contratti</h1>
+  <p style="color:var(--text-dim); margin-bottom: 24px;">Il perimetro contrattuale di ogni cliente</p>
+
+  <div class="card">
+    <form id="project-form">
+      <div class="field">
+        <label for="client_name">Nome cliente *</label>
+        <input type="text" id="client_name" required>
+      </div>
+      <div class="field">
+        <label for="project_name">Nome progetto *</label>
+        <input type="text" id="project_name" required>
+      </div>
+
+      <div class="row-2">
+        <div class="field">
+          <label for="contract_start_date">Data inizio contratto *</label>
+          <input type="date" id="contract_start_date" required>
+        </div>
+        <div class="field">
+          <label for="contract_end_date">Data fine contratto *</label>
+          <input type="date" id="contract_end_date" required>
+        </div>
+      </div>
+
+      <div class="row-2">
+        <div class="field">
+          <label for="expected_outputs_count">N° uscite previste *</label>
+          <input type="number" id="expected_outputs_count" min="0" required>
+        </div>
+        <div class="field">
+          <label for="expected_outputs_type">Tipologia uscite *</label>
+          <input type="text" id="expected_outputs_type" required placeholder="es. Reel, Post statico...">
+        </div>
+      </div>
+
+      <div class="row-2">
+        <div class="field">
+          <label for="expected_videos_count">N° prodotti video previsti *</label>
+          <input type="number" id="expected_videos_count" min="0" required>
+        </div>
+        <div class="field">
+          <label for="expected_videos_type">Tipologia prodotti *</label>
+          <input type="text" id="expected_videos_type" required placeholder="es. Video corporate, Spot...">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="project_manager_id">Project Manager assegnato *</label>
+        <select id="project_manager_id" required>
+          <option value="">Caricamento...</option>
+        </select>
+      </div>
+
+      <button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%;">Crea progetto</button>
+      <p class="error-msg" id="error-msg"></p>
+      <p class="success-msg" id="success-msg"></p>
+    </form>
+  </div>
+
+  <div class="section-title">Progetti attivi</div>
+  <div id="projects-list">
+    <p style="color:var(--text-dim); font-size:14px;">Caricamento...</p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/layout.js"></script>
+<script>
+  let currentProfile = null;
+
+  (async () => {
+    await requireAuth();
+    currentProfile = await getCurrentProfile();
+    if (!requireRole(currentProfile, ["admin"])) return;
+
+    renderShell(currentProfile, "projects");
+    loadProjectManagers();
+    loadProjects();
+  })();
+
+  async function loadProjectManagers() {
+    const { data, error } = await supabaseClient
+      .from("profiles")
+      .select("id, full_name")
+      .eq("role", "project_manager")
+      .order("full_name");
+
+    const select = document.getElementById("project_manager_id");
+
+    if (error || !data.length) {
+      select.innerHTML = `<option value="">Nessun PM disponibile — aggiungilo prima nel Team</option>`;
+      return;
+    }
+
+    select.innerHTML = `<option value="">Seleziona...</option>` +
+      data.map(pm => `<option value="${pm.id}">${pm.full_name}</option>`).join("");
+  }
+
+  async function loadProjects() {
+    const { data, error } = await supabaseClient
+      .from("projects")
+      .select("*, profiles:project_manager_id(full_name)")
+      .order("created_at", { ascending: false });
+
+    const container = document.getElementById("projects-list");
+
+    if (error) {
+      container.innerHTML = `<p class="error-msg">Errore nel caricamento: ${error.message}</p>`;
+      return;
+    }
+
+    if (!data.length) {
+      container.innerHTML = `<div class="card"><p style="color:var(--text-dim); font-size:14px;">Nessun progetto ancora creato.</p></div>`;
+      return;
+    }
+
+    container.innerHTML = data.map(p => `
+      <div class="card" style="margin-bottom:12px;">
+        <div class="list-row-title">${p.client_name} — ${p.project_name}</div>
+        <div class="list-row-sub">
+          Contratto: ${formatDate(p.contract_start_date)} → ${formatDate(p.contract_end_date)}<br>
+          PM: ${p.profiles ? p.profiles.full_name : "—"}<br>
+          Previsti: ${p.expected_outputs_count} ${p.expected_outputs_type} · ${p.expected_videos_count} ${p.expected_videos_type}
+        </div>
+      </div>
+    `).join("");
+  }
+
+  function formatDate(d) {
+    if (!d) return "—";
+    const date = new Date(d);
+    return date.toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit", year: "numeric" });
+  }
+
+  document.getElementById("project-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const errorMsg = document.getElementById("error-msg");
+    const successMsg = document.getElementById("success-msg");
+    errorMsg.textContent = "";
+    successMsg.textContent = "";
+
+    const payload = {
+      client_name: document.getElementById("client_name").value.trim(),
+      project_name: document.getElementById("project_name").value.trim(),
+      contract_start_date: document.getElementById("contract_start_date").value,
+      contract_end_date: document.getElementById("contract_end_date").value,
+      expected_outputs_count: parseInt(document.getElementById("expected_outputs_count").value),
+      expected_outputs_type: document.getElementById("expected_outputs_type").value.trim(),
+      expected_videos_count: parseInt(document.getElementById("expected_videos_count").value),
+      expected_videos_type: document.getElementById("expected_videos_type").value.trim(),
+      project_manager_id: document.getElementById("project_manager_id").value,
+      created_by: currentProfile.id,
+    };
+
+    if (!payload.project_manager_id) {
+      errorMsg.textContent = "Seleziona un Project Manager.";
+      return;
+    }
+
+    const submitBtn = document.getElementById("submit-btn");
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Creazione in corso...";
+
+    const { error } = await supabaseClient.from("projects").insert(payload);
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Crea progetto";
+
+    if (error) {
+      errorMsg.textContent = "Errore: " + error.message;
+      return;
+    }
+
+    successMsg.textContent = "Progetto creato con successo!";
+    document.getElementById("project-form").reset();
+    loadProjects();
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Accedi · Video Agency Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+<style>
+  .login-screen {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .viewfinder {
+    position: relative;
+    width: 100%;
+    max-width: 380px;
+    padding: 36px 28px;
+  }
+  /* Angoli stile mirino fotocamera: il segno distintivo della pagina */
+  .viewfinder::before,
+  .viewfinder::after,
+  .corner-tl, .corner-br { content: ""; }
+  .corner {
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--accent);
+  }
+  .corner-tl { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+  .corner-tr { top: -1px; right: -1px; border-left: none; border-bottom: none; }
+  .corner-bl { bottom: -1px; left: -1px; border-right: none; border-top: none; }
+  .corner-br { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+
+  .login-header { text-align: center; margin-bottom: 28px; }
+  .login-header h1 {
+    font-family: var(--font-display);
+    font-size: 22px;
+    margin: 14px 0 6px;
+  }
+  .login-header p {
+    color: var(--text-dim);
+    font-size: 13px;
+    margin: 0;
+  }
+  .brand-center { justify-content: center; }
+  .footnote {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 12px;
+    font-family: var(--font-mono);
+    margin-top: 24px;
+  }
+</style>
+</head>
+<body>
+
+<div class="login-screen">
+  <div class="viewfinder card">
+    <span class="corner corner-tl"></span>
+    <span class="corner corner-tr"></span>
+    <span class="corner corner-bl"></span>
+    <span class="corner corner-br"></span>
+
+    <div class="login-header">
+      <div class="brand brand-center"><span class="rec-dot"></span> ON SET</div>
+      <h1>Video Agency Manager</h1>
+      <p>Accedi con le credenziali fornite dal tuo admin</p>
+    </div>
+
+    <form id="login-form">
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" required autocomplete="username" placeholder="nome@agenzia.it">
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" required autocomplete="current-password" placeholder="••••••••">
+      </div>
+      <button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%;">Accedi</button>
+      <p class="error-msg" id="error-msg"></p>
+    </form>
+  </div>
+
+  <p class="footnote">DINAMICA STUDIO · GESTIONE PRODUZIONE VIDEO</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-client.js"></script>
+<script>
+  // Se l'utente è già loggato, lo mandiamo dritto alla dashboard
+  (async () => {
+    const { data } = await supabaseClient.auth.getSession();
+    if (data.session) window.location.href = "dashboard.html";
+  })();
+
+  const form = document.getElementById("login-form");
+  const errorMsg = document.getElementById("error-msg");
+  const submitBtn = document.getElementById("submit-btn");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    errorMsg.textContent = "";
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Accesso in corso...";
+
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+
+    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      errorMsg.textContent = "Email o password non corrette. Riprova.";
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Accedi";
+      return;
+    }
+
+    window.location.href = "dashboard.html";
+  });
+</script>
+</body>
+</html>

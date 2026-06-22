@@ -7,55 +7,35 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/styles.css">
 <style>
-  .topbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 18px 24px;
-    border-bottom: 1px solid var(--border);
-  }
-  .wrap { max-width: 720px; margin: 0 auto; padding: 40px 24px; }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 32px 20px; }
   .welcome h1 { font-family: var(--font-display); font-size: 26px; margin-bottom: 4px; }
-  .role-tag {
-    display: inline-block;
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: var(--accent);
-    background: var(--accent-soft);
-    border: 1px solid var(--accent-dim);
-    border-radius: 5px;
-    padding: 4px 8px;
-    margin-top: 8px;
-  }
 </style>
 </head>
 <body>
 
-<div class="topbar">
-  <div class="brand"><span class="rec-dot"></span> ON SET</div>
-  <button class="btn btn-ghost" id="logout-btn">Esci</button>
-</div>
-
-<div class="wrap">
+<div class="wrap page-content">
   <div class="welcome">
     <h1 id="welcome-name">Ciao 👋</h1>
-    <p style="color:var(--text-dim)">Il tuo spazio di lavoro è quasi pronto.</p>
-    <span class="role-tag" id="role-tag">RUOLO</span>
+    <p style="color:var(--text-dim)">Il tuo spazio di lavoro</p>
+    <span class="tag" id="role-tag">RUOLO</span>
   </div>
 
-  <div class="card" style="margin-top:32px;">
-    <p style="color:var(--text-dim); font-size:14px; line-height:1.6;">
-      ✅ Il login funziona correttamente — sei autenticato e il tuo profilo è stato letto dal database.<br><br>
-      Nei prossimi passaggi qui troverai: il calendario degli shooting, i prodotti video da consegnare,
-      e — se sei admin — la gestione dei progetti e dei contratti.
-    </p>
+  <div id="admin-shortcuts" style="display:none; margin-top:28px;">
+    <div class="section-title">Strumenti admin</div>
+    <a href="projects.html" class="card" style="display:block; margin-bottom:12px; text-decoration:none;">
+      <div class="list-row-title">Gestisci progetti e contratti</div>
+      <div class="list-row-sub">Crea nuovi clienti, definisci il perimetro contrattuale</div>
+    </a>
+    <a href="team.html" class="card" style="display:block; text-decoration:none;">
+      <div class="list-row-title">Gestisci il team</div>
+      <div class="list-row-sub">Aggiungi project manager e operatori</div>
+    </a>
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase-client.js"></script>
+<script src="js/layout.js"></script>
 <script>
   (async () => {
     await requireAuth();
@@ -67,14 +47,17 @@
       return;
     }
 
-    document.getElementById("welcome-name").textContent = `Ciao, ${profile.full_name} 👋`;
-    document.getElementById("role-tag").textContent = profile.role.replace("_", " ").toUpperCase();
-  })();
+    renderShell(profile, "dashboard");
 
-  document.getElementById("logout-btn").addEventListener("click", async () => {
-    await supabaseClient.auth.signOut();
-    window.location.href = "index.html";
-  });
+    document.getElementById("welcome-name").textContent = `Ciao, ${profile.full_name} 👋`;
+    const roleTag = document.getElementById("role-tag");
+    roleTag.textContent = profile.role.replace("_", " ").toUpperCase();
+    roleTag.classList.add(profile.role === "admin" ? "tag-admin" : profile.role === "project_manager" ? "tag-pm" : "tag-operatore");
+
+    if (profile.role === "admin") {
+      document.getElementById("admin-shortcuts").style.display = "block";
+    }
+  })();
 </script>
 </body>
 </html>

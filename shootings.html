@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shooting · Video Agency Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+<style>
+  .wrap { max-width: 720px; margin: 0 auto; padding: 32px 20px; }
+  .page-title { font-family: var(--font-display); font-size: 24px; margin-bottom: 6px; }
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 480px) { .row-2 { grid-template-columns: 1fr; } }
+  .checkbox-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .checkbox-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 8px 14px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .checkbox-chip input { accent-color: var(--accent); }
+  .checkbox-chip.checked {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .group-label {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-dim);
+    margin: 14px 0 8px;
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap page-content">
+  <h1 class="page-title">Shooting video</h1>
+  <p style="color:var(--text-dim); margin-bottom: 24px;">Pianifica le riprese e convoca il team</p>
+
+  <div class="card">
+    <form id="shoot-form">
+      <div class="field">
+        <label for="project_id">Cliente e contratto di riferimento *</label>
+        <select id="project_id" required>
+          <option value="">Caricamento...</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="shoot_name">Nome dello shooting *</label>
+        <input type="text" id="shoot_name" required placeholder="es. Reel prodotto, Intervista CEO...">
+      </div>
+
+      <div class="row-2">
+        <div class="field">
+          <label for="shoot_date">Data *</label>
+          <input type="date" id="shoot_date" required>
+        </div>
+        <div class="field">
+          <label for="duration_hours">Durata *</label>
+          <select id="duration_hours" required>
+            <option value="">Seleziona...</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row-2">
+        <div class="field">
+          <label for="call_time">Orario di convocazione *</label>
+          <input type="time" id="call_time" required>
+        </div>
+        <div class="field">
+          <label for="location">Luogo *</label>
+          <input type="text" id="location" required placeholder="es. Studio, sede cliente...">
+        </div>
+      </div>
+
+      <div class="group-label">Chi è convocato *</div>
+      <div class="checkbox-group" id="participants-group">
+        <span style="color:var(--text-dim); font-size:13px;">Caricamento team...</span>
+      </div>
+
+      <div class="field" style="margin-top:18px;">
+        <label for="technical_equipment">Materiale tecnico necessario *</label>
+        <textarea id="technical_equipment" required rows="2" placeholder="es. Camera A7iii, gimbal, 2 luci..."></textarea>
+      </div>
+
+      <div class="field">
+        <label for="notes">Note</label>
+        <textarea id="notes" rows="2" placeholder="Spazio libero..."></textarea>
+      </div>
+
+      <button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%; margin-top:8px;">Crea shooting</button>
+      <p class="error-msg" id="error-msg"></p>
+      <p class="success-msg" id="success-msg"></p>
+    </form>
+  </div>
+
+  <div class="section-title">Prossimi shooting</div>
+  <div id="shoots-list">
+    <p style="color:var(--text-dim); font-size:14px;">Caricamento...</p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/layout.js"></script>
+<script>
+  let currentProfile = null;
+  let teamMembers = [];
+
+  (async () => {
+    await requireAuth();
+    currentProfile = await getCurrentProfile();
+    if (!requireRole(currentProfile, ["admin", "project_manager"])) return;
+
+    renderShell(currentProfile, "shootings");
+    fillDurationOptions();
+    loadProjects();
+    loadTeamForCheckboxes();
+    loadShootings();
+  })();
+
+  function fillDurationOptions() {
+    const select = document.getElementById("duration_hours");
+    let html = `<option value="">Seleziona...</option>`;
+    for (let h = 0.5; h <= 12; h += 0.5) {
+      html += `<option value="${h}">${h} ${h === 1 ? "ora" : "ore"}</option>`;
+    }
+    select.innerHTML = html;
+  }
+
+  async function loadProjects() {
+    const { data, error } = await supabaseClient
+      .from("projects")
+      .select("id, client_name, project_name")
+      .order("client_name");
+
+    const select = document.getElementById("project_id");
+    if (error || !data.length) {
+      select.innerHTML = `<option value="">Nessun progetto — creane uno prima</option>`;
+      return;
+    }
+    select.innerHTML = `<option value="">Seleziona...</option>` +
+      data.map(p => `<option value="${p.id}">${p.client_name} — ${p.project_name}</option>`).join("");
+  }
+
+  async function loadTeamForCheckboxes() {
+    const { data, error } = await supabaseClient
+      .from("profiles")
+      .select("id, full_name, role")
+      .in("role", ["project_manager", "operatore"])
+      .order("full_name");
+
+    const container = document.getElementById("participants-group");
+    if (error || !data.length) {
+      container.innerHTML = `<span style="color:var(--text-dim); font-size:13px;">Nessun membro del team trovato.</span>`;
+      return;
+    }
+    teamMembers = data;
+    container.innerHTML = data.map(m => `
+      <label class="checkbox-chip" data-id="${m.id}">
+        <input type="checkbox" value="${m.id}"> ${m.full_name}
+      </label>
+    `).join("");
+
+    container.querySelectorAll(".checkbox-chip").forEach(chip => {
+      chip.addEventListener("click", () => {
+        const checkbox = chip.querySelector("input");
+        setTimeout(() => chip.classList.toggle("checked", checkbox.checked), 0);
+      });
+    });
+  }
+
+  async function loadShootings() {
+    const { data, error } = await supabaseClient
+      .from("shootings")
+      .select("*, projects(client_name, project_name), shooting_participants(profiles(full_name))")
+      .order("shoot_date", { ascending: true });
+
+    const container = document.getElementById("shoots-list");
+    if (error) {
+      container.innerHTML = `<p class="error-msg">Errore: ${error.message}</p>`;
+      return;
+    }
+    if (!data.length) {
+      container.innerHTML = `<div class="card"><p style="color:var(--text-dim); font-size:14px;">Nessuno shooting ancora pianificato.</p></div>`;
+      return;
+    }
+
+    container.innerHTML = data.map(s => {
+      const names = (s.shooting_participants || []).map(p => p.profiles?.full_name).filter(Boolean).join(", ");
+      return `
+        <div class="card" style="margin-bottom:12px;">
+          <div class="list-row-title">${s.shoot_name}</div>
+          <div class="list-row-sub">
+            ${formatDate(s.shoot_date)} · ${s.call_time} · ${s.location} · ${s.duration_hours} ore<br>
+            Cliente: ${s.projects ? s.projects.client_name : "—"}<br>
+            Convocati: ${names || "—"}
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  function formatDate(d) {
+    if (!d) return "—";
+    return new Date(d).toLocaleDateString("it-IT", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" });
+  }
+
+  document.getElementById("shoot-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const errorMsg = document.getElementById("error-msg");
+    const successMsg = document.getElementById("success-msg");
+    errorMsg.textContent = "";
+    successMsg.textContent = "";
+
+    const checkedIds = Array.from(document.querySelectorAll("#participants-group input:checked")).map(c => c.value);
+    if (checkedIds.length === 0) {
+      errorMsg.textContent = "Seleziona almeno una persona convocata.";
+      return;
+    }
+
+    const payload = {
+      project_id: document.getElementById("project_id").value,
+      shoot_name: document.getElementById("shoot_name").value.trim(),
+      shoot_date: document.getElementById("shoot_date").value,
+      duration_hours: parseFloat(document.getElementById("duration_hours").value),
+      call_time: document.getElementById("call_time").value,
+      location: document.getElementById("location").value.trim(),
+      technical_equipment: document.getElementById("technical_equipment").value.trim(),
+      notes: document.getElementById("notes").value.trim() || null,
+      created_by: currentProfile.id,
+    };
+
+    if (!payload.project_id) {
+      errorMsg.textContent = "Seleziona un cliente/contratto.";
+      return;
+    }
+
+    const submitBtn = document.getElementById("submit-btn");
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Creazione in corso...";
+
+    const { data: inserted, error } = await supabaseClient
+      .from("shootings")
+      .insert(payload)
+      .select()
+      .single();
+
+    if (error) {
+      errorMsg.textContent = "Errore: " + error.message;
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Crea shooting";
+      return;
+    }
+
+    const participantRows = checkedIds.map(pid => ({ shooting_id: inserted.id, profile_id: pid }));
+    const { error: partError } = await supabaseClient.from("shooting_participants").insert(participantRows);
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Crea shooting";
+
+    if (partError) {
+      errorMsg.textContent = "Shooting creato, ma errore nell'assegnare i partecipanti: " + partError.message;
+      return;
+    }
+
+    successMsg.textContent = "Shooting creato con successo!";
+    document.getElementById("shoot-form").reset();
+    document.querySelectorAll(".checkbox-chip").forEach(c => c.classList.remove("checked"));
+    loadShootings();
+  });
+</script>
+</body>
+</html>

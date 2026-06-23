@@ -243,3 +243,41 @@ a { color: inherit; }
   margin-bottom: 24px;
 }
 .helper-card strong { color: var(--text); }
+
+/* --- Barre di avanzamento contrattuale --- */
+.progress-block { margin-top: 14px; }
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+.progress-track {
+  height: 8px;
+  background: var(--surface-raised);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+.progress-fill.ok { background: var(--success); }
+.progress-fill.warning { background: var(--warning); }
+.progress-fill.danger { background: var(--danger); }
+
+.alert-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 13px;
+  margin-top: 10px;
+  line-height: 1.5;
+}
+.alert-banner.warning { background: rgba(224,169,62,0.12); border: 1px solid rgba(224,169,62,0.4); color: var(--warning); }
+.alert-banner.danger { background: rgba(224,82,76,0.12); border: 1px solid rgba(224,82,76,0.4); color: var(--danger); }

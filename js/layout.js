@@ -3,12 +3,17 @@
 // Si adatta in base al ruolo dell'utente loggato
 // ============================================================
 
+// Registra il service worker (necessario per installare l'app sul telefono)
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js").catch(err => console.error("SW registration failed:", err));
+}
+
 function renderShell(profile, activePage) {
   // --- Topbar ---
   const topbar = document.createElement("div");
   topbar.className = "topbar";
   topbar.innerHTML = `
-    <div class="brand"><span class="rec-dot"></span> ON SET</div>
+    <div class="brand"><span class="rec-dot"></span> DINAMICA</div>
     <button class="btn btn-ghost" id="logout-btn-shell">Esci</button>
   `;
   document.body.prepend(topbar);

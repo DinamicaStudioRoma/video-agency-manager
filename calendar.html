@@ -193,7 +193,15 @@
   })();
 
   function toISODate(d) {
-    return d.toISOString().slice(0, 10);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+
+  function parseLocalDate(str) {
+    const [y, m, d] = str.split("-").map(Number);
+    return new Date(y, m - 1, d);
   }
 
   function changeMonth(delta) {
@@ -284,8 +292,8 @@
   }
 
   function eachDate(startStr, endStr, callback) {
-    let d = new Date(startStr);
-    const end = new Date(endStr);
+    let d = parseLocalDate(startStr);
+    const end = parseLocalDate(endStr);
     while (d <= end) {
       callback(toISODate(d));
       d.setDate(d.getDate() + 1);

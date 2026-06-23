@@ -20,6 +20,11 @@
     <span class="tag" id="role-tag">RUOLO</span>
   </div>
 
+  <div id="alerts-section" style="margin-top:28px; display:none;">
+    <div class="section-title">Alert contrattuali</div>
+    <div id="alerts-list"></div>
+  </div>
+
   <div id="admin-shortcuts" style="display:none; margin-top:28px;">
     <div class="section-title">Strumenti admin</div>
     <a href="projects.html" class="card" style="display:block; margin-bottom:12px; text-decoration:none;">
@@ -57,7 +62,54 @@
     if (profile.role === "admin") {
       document.getElementById("admin-shortcuts").style.display = "block";
     }
+
+    if (profile.role === "admin" || profile.role === "project_manager") {
+      loadContractAlerts(profile);
+    }
   })();
+
+  async function loadContractAlerts(profile) {
+    let projectsQuery = supabaseClient.from("projects").select("*");
+    if (profile.role === "project_manager") {
+      projectsQuery = projectsQuery.eq("project_manager_id", profile.id);
+    }
+
+    const [{ data: projects }, { data: shootingsData }, { data: videosData }] = await Promise.all([
+      projectsQuery,
+      supabaseClient.from("shootings").select("project_id"),
+      supabaseClient.from("video_products").select("project_id"),
+    ]);
+
+    if (!projects || !projects.length) return;
+
+    const countByProject = (rows, projectId) => (rows || []).filter(r => r.project_id === projectId).length;
+    const alerts = [];
+
+    projects.forEach(p => {
+      const outputsUsed = countByProject(shootingsData, p.id);
+      const videosUsed = countByProject(videosData, p.id);
+      checkAlert(alerts, p, "Uscite", outputsUsed, p.expected_outputs_count, p.expected_outputs_type);
+      checkAlert(alerts, p, "Prodotti video", videosUsed, p.expected_videos_count, p.expected_videos_type);
+    });
+
+    if (!alerts.length) return;
+
+    document.getElementById("alerts-section").style.display = "block";
+    document.getElementById("alerts-list").innerHTML = alerts.map(a => `
+      <div class="alert-banner ${a.level}" style="margin-top:10px;">
+        ${a.level === "danger" ? "🚨" : "⚠️"} <strong>${a.clientName}</strong> — ${a.message}
+      </div>
+    `).join("");
+  }
+
+  function checkAlert(alerts, project, label, used, expected, type) {
+    if (!expected || expected <= 0) return;
+    const pct = Math.round((used / expected) * 100);
+    if (pct >= 100) {
+      alerts.push({ level: "danger", clientName: project.client_name, message: `${label.toLowerCase()} esaurite: ${used}/${expected} ${type}` });
+    } else if (pct >= 70) {
+      alerts.push({ level: "warning", clientName: project.client_name, message: `${pct}% delle ${label.toLowerCase()} usate (${used}/${expected} ${type})` });
+    }
 </script>
 </body>
 </html>

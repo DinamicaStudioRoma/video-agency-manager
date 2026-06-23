@@ -21,6 +21,7 @@ function renderShell(profile, activePage) {
   // --- Voci di navigazione, in base al ruolo ---
   const navItems = [
     { id: "dashboard", label: "Home", href: "dashboard.html", roles: ["admin", "project_manager", "operatore"] },
+    { id: "calendar", label: "Calendario", href: "calendar.html", roles: ["admin", "project_manager", "operatore"] },
     { id: "shootings", label: "Shooting", href: "shootings.html", roles: ["admin", "project_manager"] },
     { id: "products", label: "Prodotti", href: "products.html", roles: ["admin", "project_manager"] },
     { id: "projects", label: "Progetti", href: "projects.html", roles: ["admin"] },

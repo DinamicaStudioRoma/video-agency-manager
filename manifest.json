@@ -1,0 +1,14 @@
+{
+  "name": "Dinamica Studio - Task Manager",
+  "short_name": "Dinamica",
+  "description": "Gestione shooting, prodotti video e contratti",
+  "start_url": "/dashboard.html",
+  "display": "standalone",
+  "background_color": "#14161b",
+  "theme_color": "#14161b",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

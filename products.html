@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prodotti video · Video Agency Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+<style>
+  .wrap { max-width: 720px; margin: 0 auto; padding: 32px 20px; }
+  .page-title { font-family: var(--font-display); font-size: 24px; margin-bottom: 6px; }
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 480px) { .row-2 { grid-template-columns: 1fr; } }
+  .diff-badge { font-size: 11px; font-family: var(--font-mono); text-transform: uppercase; padding: 3px 8px; border-radius: 5px; }
+  .diff-VELOCE { color: var(--success); background: rgba(79,174,126,0.12); border: 1px solid rgba(79,174,126,0.4); }
+  .diff-MEDIO { color: var(--warning); background: rgba(224,169,62,0.12); border: 1px solid rgba(224,169,62,0.4); }
+  .diff-IMPEGNATIVO { color: var(--danger); background: rgba(224,82,76,0.12); border: 1px solid rgba(224,82,76,0.4); }
+</style>
+</head>
+<body>
+
+<div class="wrap page-content">
+  <h1 class="page-title">Prodotti video</h1>
+  <p style="color:var(--text-dim); margin-bottom: 24px;">Assegna montaggi e consegne</p>
+
+  <div class="card">
+    <form id="product-form">
+      <div class="field">
+        <label for="project_id">Cliente e contratto di riferimento *</label>
+        <select id="project_id" required>
+          <option value="">Caricamento...</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="product_name">Nome del prodotto / format *</label>
+        <input type="text" id="product_name" required placeholder="es. Reel lancio prodotto, Recap evento...">
+      </div>
+
+      <div class="field">
+        <label for="assigned_to">Assegnato a (operatore) *</label>
+        <select id="assigned_to" required>
+          <option value="">Caricamento...</option>
+        </select>
+      </div>
+
+      <div class="row-2">
+        <div class="field">
+          <label for="review_due_date">Pronto per revisione il *</label>
+          <input type="date" id="review_due_date" required>
+        </div>
+        <div class="field">
+          <label for="publish_date">Va online il *</label>
+          <input type="date" id="publish_date" required>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="difficulty">Difficoltà *</label>
+        <select id="difficulty" required>
+          <option value="">Seleziona...</option>
+          <option value="VELOCE">Veloce</option>
+          <option value="MEDIO">Medio</option>
+          <option value="IMPEGNATIVO">Impegnativo</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="script">Script</label>
+        <textarea id="script" rows="2" placeholder="Spazio libero..."></textarea>
+      </div>
+      <div class="field">
+        <label for="reference">Reference</label>
+        <textarea id="reference" rows="2" placeholder="Spazio libero..."></textarea>
+      </div>
+      <div class="field">
+        <label for="notes">Note</label>
+        <textarea id="notes" rows="2" placeholder="Spazio libero..."></textarea>
+      </div>
+
+      <button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%; margin-top:8px;">Assegna prodotto</button>
+      <p class="error-msg" id="error-msg"></p>
+      <p class="success-msg" id="success-msg"></p>
+    </form>
+  </div>
+
+  <div class="section-title">Prodotti in corso</div>
+  <div id="products-list">
+    <p style="color:var(--text-dim); font-size:14px;">Caricamento...</p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/layout.js"></script>
+<script>
+  let currentProfile = null;
+
+  (async () => {
+    await requireAuth();
+    currentProfile = await getCurrentProfile();
+    if (!requireRole(currentProfile, ["admin", "project_manager"])) return;
+
+    renderShell(currentProfile, "products");
+    loadProjects();
+    loadOperators();
+    loadProducts();
+  })();
+
+  async function loadProjects() {
+    const { data, error } = await supabaseClient
+      .from("projects")
+      .select("id, client_name, project_name")
+      .order("client_name");
+
+    const select = document.getElementById("project_id");
+    if (error || !data.length) {
+      select.innerHTML = `<option value="">Nessun progetto — creane uno prima</option>`;
+      return;
+    }
+    select.innerHTML = `<option value="">Seleziona...</option>` +
+      data.map(p => `<option value="${p.id}">${p.client_name} — ${p.project_name}</option>`).join("");
+  }
+
+  async function loadOperators() {
+    const { data, error } = await supabaseClient
+      .from("profiles")
+      .select("id, full_name")
+      .eq("role", "operatore")
+      .order("full_name");
+
+    const select = document.getElementById("assigned_to");
+    if (error || !data.length) {
+      select.innerHTML = `<option value="">Nessun operatore — aggiungilo nel Team</option>`;
+      return;
+    }
+    select.innerHTML = `<option value="">Seleziona...</option>` +
+      data.map(o => `<option value="${o.id}">${o.full_name}</option>`).join("");
+  }
+
+  async function loadProducts() {
+    const { data, error } = await supabaseClient
+      .from("video_products")
+      .select("*, projects(client_name), profiles:assigned_to(full_name)")
+      .order("review_due_date", { ascending: true });
+
+    const container = document.getElementById("products-list");
+    if (error) {
+      container.innerHTML = `<p class="error-msg">Errore: ${error.message}</p>`;
+      return;
+    }
+    if (!data.length) {
+      container.innerHTML = `<div class="card"><p style="color:var(--text-dim); font-size:14px;">Nessun prodotto assegnato ancora.</p></div>`;
+      return;
+    }
+
+    container.innerHTML = data.map(p => `
+      <div class="card" style="margin-bottom:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div class="list-row-title">${p.product_name}</div>
+          <span class="diff-badge diff-${p.difficulty}">${p.difficulty}</span>
+        </div>
+        <div class="list-row-sub">
+          Cliente: ${p.projects ? p.projects.client_name : "—"}<br>
+          Assegnato a: ${p.profiles ? p.profiles.full_name : "—"}<br>
+          Revisione: ${formatDate(p.review_due_date)} · Online: ${formatDate(p.publish_date)}
+        </div>
+      </div>
+    `).join("");
+  }
+
+  function formatDate(d) {
+    if (!d) return "—";
+    return new Date(d).toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit", year: "numeric" });
+  }
+
+  document.getElementById("product-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const errorMsg = document.getElementById("error-msg");
+    const successMsg = document.getElementById("success-msg");
+    errorMsg.textContent = "";
+    successMsg.textContent = "";
+
+    const payload = {
+      project_id: document.getElementById("project_id").value,
+      product_name: document.getElementById("product_name").value.trim(),
+      assigned_to: document.getElementById("assigned_to").value,
+      review_due_date: document.getElementById("review_due_date").value,
+      publish_date: document.getElementById("publish_date").value,
+      difficulty: document.getElementById("difficulty").value,
+      script: document.getElementById("script").value.trim() || null,
+      reference: document.getElementById("reference").value.trim() || null,
+      notes: document.getElementById("notes").value.trim() || null,
+      created_by: currentProfile.id,
+      // assigned_date si compila da sola (default nel database = data di oggi)
+    };
+
+    if (!payload.project_id || !payload.assigned_to) {
+      errorMsg.textContent = "Compila tutti i campi obbligatori.";
+      return;
+    }
+
+    const submitBtn = document.getElementById("submit-btn");
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Assegnazione in corso...";
+
+    const { error } = await supabaseClient.from("video_products").insert(payload);
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Assegna prodotto";
+
+    if (error) {
+      errorMsg.textContent = "Errore: " + error.message;
+      return;
+    }
+
+    successMsg.textContent = "Prodotto assegnato con successo!";
+    document.getElementById("product-form").reset();
+    loadProducts();
+  });
+</script>
+</body>
+</html>

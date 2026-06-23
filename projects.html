@@ -134,16 +134,52 @@
       return;
     }
 
-    container.innerHTML = data.map(p => `
-      <div class="card" style="margin-bottom:12px;">
-        <div class="list-row-title">${p.client_name} — ${p.project_name}</div>
-        <div class="list-row-sub">
-          Contratto: ${formatDate(p.contract_start_date)} → ${formatDate(p.contract_end_date)}<br>
-          PM: ${p.profiles ? p.profiles.full_name : "—"}<br>
-          Previsti: ${p.expected_outputs_count} ${p.expected_outputs_type} · ${p.expected_videos_count} ${p.expected_videos_type}
+    // Carichiamo i conteggi reali: le "uscite" sono gli shooting, i "prodotti video" sono i montaggi
+    const [{ data: shootingsData }, { data: videosData }] = await Promise.all([
+      supabaseClient.from("shootings").select("project_id"),
+      supabaseClient.from("video_products").select("project_id"),
+    ]);
+
+    const countByProject = (rows, projectId) => (rows || []).filter(r => r.project_id === projectId).length;
+
+    container.innerHTML = data.map(p => {
+      const outputsUsed = countByProject(shootingsData, p.id);
+      const videosUsed = countByProject(videosData, p.id);
+
+      return `
+        <div class="card" style="margin-bottom:12px;">
+          <div class="list-row-title">${p.client_name} — ${p.project_name}</div>
+          <div class="list-row-sub">
+            Contratto: ${formatDate(p.contract_start_date)} → ${formatDate(p.contract_end_date)}<br>
+            PM: ${p.profiles ? p.profiles.full_name : "—"}
+          </div>
+
+          ${renderProgressBlock("Uscite", outputsUsed, p.expected_outputs_count, p.expected_outputs_type)}
+          ${renderProgressBlock("Prodotti video", videosUsed, p.expected_videos_count, p.expected_videos_type)}
         </div>
+      `;
+    }).join("");
+  }
+
+  function renderProgressBlock(label, used, expected, type) {
+    const pct = expected > 0 ? Math.round((used / expected) * 100) : 0;
+    const cappedPct = Math.min(pct, 100);
+    const statusClass = pct >= 100 ? "danger" : pct >= 70 ? "warning" : "ok";
+
+    let alertHtml = "";
+    if (pct >= 100) {
+      alertHtml = `<div class="alert-banner danger">🚨 Contratto esaurito: ${used} su ${expected} ${type} già consegnati. Avvisa il cliente prima di continuare a lavorare.</div>`;
+    } else if (pct >= 70) {
+      alertHtml = `<div class="alert-banner warning">⚠️ Attenzione: hai usato il ${pct}% delle ${label.toLowerCase()} contrattualizzate.</div>`;
+    }
+
+    return `
+      <div class="progress-block">
+        <div class="progress-label"><span>${label} (${type || "—"})</span><span>${used} / ${expected}</span></div>
+        <div class="progress-track"><div class="progress-fill ${statusClass}" style="width:${cappedPct}%;"></div></div>
+        ${alertHtml}
       </div>
-    `).join("");
+    `;
   }
 
   function formatDate(d) {

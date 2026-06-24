@@ -1,0 +1,334 @@
+/* ============================================================
+   DESIGN TOKENS — Video Agency Manager
+   Palette ispirata al set di ripresa: nero da control room,
+   tally-light arancio/rosso come accento di "stato attivo".
+============================================================ */
+
+:root {
+  --bg: #14161b;
+  --surface: #1d2027;
+  --surface-raised: #262a33;
+  --border: #2e323c;
+  --text: #ECEAE4;
+  --text-dim: #8B8E98;
+  --accent: #FF5A36;
+  --accent-dim: #c2421f;
+  --accent-soft: rgba(255, 90, 54, 0.12);
+  --success: #4FAE7E;
+  --warning: #E0A93E;
+  --danger: #E0524C;
+
+  --font-display: "Space Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Inter", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", "Courier New", monospace;
+
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  min-height: 100vh;
+}
+
+a { color: inherit; }
+
+/* --- REC indicator: il segno distintivo dell'app --- */
+.rec-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: inline-block;
+  box-shadow: 0 0 0 0 rgba(255, 90, 54, 0.6);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(255, 90, 54, 0.55); }
+  70%  { box-shadow: 0 0 0 8px rgba(255, 90, 54, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 90, 54, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rec-dot { animation: none; }
+}
+
+/* --- Brand lockup --- */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+/* --- Buttons --- */
+.btn {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 15px;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 13px 20px;
+  cursor: pointer;
+  transition: transform 0.08s ease, opacity 0.15s ease;
+}
+.btn:active { transform: scale(0.98); }
+.btn-primary {
+  background: var(--accent);
+  color: #14161b;
+}
+.btn-primary:hover { opacity: 0.92; }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-ghost {
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+}
+
+/* --- Inputs --- */
+.field { margin-bottom: 16px; }
+.field label {
+  display: block;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-size: 15px;
+  font-family: var(--font-body);
+  color: var(--text);
+}
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* --- Cards --- */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+}
+
+.error-msg {
+  color: var(--danger);
+  font-size: 13px;
+  margin-top: 10px;
+  min-height: 18px;
+}
+
+.success-msg {
+  color: var(--success);
+  font-size: 13px;
+  margin-top: 10px;
+  min-height: 18px;
+}
+
+/* --- Topbar (condivisa, iniettata da layout.js) --- */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 10;
+}
+
+/* --- Bottom nav: pensata per il pollice, su mobile --- */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 0 16px calc(env(safe-area-inset-bottom) + 12px);
+  z-index: 10;
+  overflow: hidden;
+}
+.bottom-nav-item {
+  flex: 0 0 auto;
+  width: 66px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 10px 2px 8px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  letter-spacing: 0;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  text-decoration: none;
+  border: none;
+  background: transparent;
+  border-top: 2px solid transparent;
+}
+.bottom-nav-item .nav-icon {
+  font-size: 21px;
+  line-height: 1;
+}
+.bottom-nav-item .nav-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.bottom-nav-item.active {
+  color: var(--accent);
+  border-top-color: var(--accent);
+}
+
+.nav-more-panel {
+  position: fixed;
+  right: 14px;
+  bottom: calc(78px + env(safe-area-inset-bottom));
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 6px;
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 11;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+  min-width: 160px;
+}
+.nav-more-panel.open { display: flex; }
+.nav-more-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+  border-radius: 8px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 14px;
+}
+.nav-more-item:active { background: var(--surface); }
+.nav-more-item.active { color: var(--accent); }
+.nav-more-item .nav-icon { font-size: 17px; }
+
+/* Lascia spazio in fondo alla pagina per non finire sotto la bottom-nav */
+.page-content {
+  padding-bottom: 170px;
+}
+
+/* --- Tabella semplice per liste (progetti, team, ecc.) --- */
+.list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+.list-row:last-child { border-bottom: none; }
+.list-row-title { font-weight: 600; font-size: 15px; }
+.list-row-sub { font-size: 13px; color: var(--text-dim); margin-top: 2px; }
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  margin: 32px 0 14px;
+}
+.section-title:first-of-type { margin-top: 0; }
+
+.tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 5px;
+}
+.tag-admin { color: var(--accent); background: var(--accent-soft); border: 1px solid var(--accent-dim); }
+.tag-pm { color: var(--warning); background: rgba(224,169,62,0.12); border: 1px solid rgba(224,169,62,0.4); }
+.tag-operatore { color: var(--success); background: rgba(79,174,126,0.12); border: 1px solid rgba(79,174,126,0.4); }
+
+.helper-card {
+  background: var(--surface-raised);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+.helper-card strong { color: var(--text); }
+
+/* --- Barre di avanzamento contrattuale --- */
+.progress-block { margin-top: 14px; }
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+.progress-track {
+  height: 8px;
+  background: var(--surface-raised);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+.progress-fill.ok { background: var(--success); }
+.progress-fill.warning { background: var(--warning); }
+.progress-fill.danger { background: var(--danger); }
+
+.alert-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 13px;
+  margin-top: 10px;
+  line-height: 1.5;
+}
+.alert-banner.warning { background: rgba(224,169,62,0.12); border: 1px solid rgba(224,169,62,0.4); color: var(--warning); }
+.alert-banner.danger { background: rgba(224,82,76,0.12); border: 1px solid rgba(224,82,76,0.4); color: var(--danger); }

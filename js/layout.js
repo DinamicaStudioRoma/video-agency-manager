@@ -25,12 +25,12 @@ function renderShell(profile, activePage) {
 
   // --- Voci di navigazione, in base al ruolo ---
   const navItems = [
-    { id: "dashboard", label: "Home", href: "dashboard.html", roles: ["admin", "project_manager", "operatore"] },
-    { id: "calendar", label: "Calendario", href: "calendar.html", roles: ["admin", "project_manager", "operatore"] },
-    { id: "shootings", label: "Shooting", href: "shootings.html", roles: ["admin", "project_manager"] },
-    { id: "products", label: "Prodotti", href: "products.html", roles: ["admin", "project_manager"] },
-    { id: "projects", label: "Progetti", href: "projects.html", roles: ["admin"] },
-    { id: "team", label: "Team", href: "team.html", roles: ["admin"] },
+    { id: "dashboard", label: "Home", icon: "🏠", href: "dashboard.html", roles: ["admin", "project_manager", "operatore"] },
+    { id: "calendar", label: "Cal.", icon: "📅", href: "calendar.html", roles: ["admin", "project_manager", "operatore"] },
+    { id: "shootings", label: "Shoot", icon: "🎬", href: "shootings.html", roles: ["admin", "project_manager"] },
+    { id: "products", label: "Prod.", icon: "✂️", href: "products.html", roles: ["admin", "project_manager"] },
+    { id: "projects", label: "Prog.", icon: "📁", href: "projects.html", roles: ["admin"] },
+    { id: "team", label: "Team", icon: "👥", href: "team.html", roles: ["admin"] },
   ];
 
   const visibleItems = navItems.filter(item => item.roles.includes(profile.role));
@@ -39,7 +39,8 @@ function renderShell(profile, activePage) {
   nav.className = "bottom-nav";
   nav.innerHTML = visibleItems.map(item => `
     <a href="${item.href}" class="bottom-nav-item ${item.id === activePage ? "active" : ""}">
-      ${item.label}
+      <span class="nav-icon">${item.icon}</span>
+      <span class="nav-label">${item.label}</span>
     </a>
   `).join("");
   document.body.appendChild(nav);

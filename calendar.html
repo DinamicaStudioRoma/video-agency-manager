@@ -4,24 +4,70 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Calendario · Video Agency Manager</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/styles.css">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="theme-color" content="#14161b">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  .wrap { max-width: 720px; margin: 0 auto; padding: 24px 16px; }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 20px 14px; }
   .page-title { font-family: var(--font-display); font-size: 24px; margin-bottom: 6px; }
 
-  .filter-bar { margin: 18px 0; }
+  .filter-group { margin: 16px 0; }
+  .group-label {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+  .chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip-toggle {
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    border-radius: 20px;
+    padding: 7px 13px;
+    font-size: 13px;
+    font-family: var(--font-body);
+    cursor: pointer;
+  }
+  .chip-toggle.active {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    color: var(--text);
+  }
+
+  .segmented {
+    display: flex;
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 3px;
+    gap: 3px;
+  }
+  .segment {
+    flex: 1;
+    text-align: center;
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    font-size: 13px;
+    font-family: var(--font-body);
+    padding: 8px 4px;
+    border-radius: 7px;
+    cursor: pointer;
+  }
+  .segment.active { background: var(--surface); color: var(--text); font-weight: 600; }
 
   .month-nav {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 14px;
+    margin: 18px 0 12px;
   }
   .month-nav h2 {
     font-family: var(--font-display);
@@ -29,7 +75,6 @@
     text-transform: capitalize;
     margin: 0;
   }
-  .month-nav-btns { display: flex; gap: 8px; }
   .icon-btn {
     background: var(--surface-raised);
     border: 1px solid var(--border);
@@ -43,24 +88,22 @@
   .weekday-row, .day-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 4px;
+    gap: 3px;
   }
-  .weekday-row {
-    margin-bottom: 6px;
-  }
+  .weekday-row { margin-bottom: 6px; }
   .weekday-label {
     text-align: center;
-    font-size: 11px;
+    font-size: 10.5px;
     font-family: var(--font-mono);
     color: var(--text-dim);
     text-transform: uppercase;
   }
   .day-cell {
-    aspect-ratio: 1;
+    min-height: 58px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 4px;
+    border-radius: 7px;
+    padding: 3px;
     display: flex;
     flex-direction: column;
     cursor: pointer;
@@ -70,23 +113,30 @@
   .day-cell.today { border-color: var(--accent); }
   .day-cell.selected { background: var(--surface-raised); border-color: var(--accent); border-width: 2px; }
   .day-num {
-    font-size: 12px;
+    font-size: 11px;
     font-family: var(--font-mono);
     color: var(--text-dim);
   }
   .day-cell.today .day-num { color: var(--accent); font-weight: 600; }
-  .dots-row {
+
+  .pill-stack { display: flex; flex-direction: column; gap: 2px; margin-top: 3px; }
+  .pill {
+    font-size: 9.5px;
+    line-height: 1.4;
+    padding: 1px 3px;
+    border-radius: 4px;
     display: flex;
-    flex-wrap: wrap;
-    gap: 2px;
-    margin-top: auto;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    font-weight: 600;
+    color: #14161b;
   }
-  .dot { width: 6px; height: 6px; border-radius: 50%; }
-  .dot-shoot { background: var(--accent); }
-  .dot-VELOCE { background: var(--success); }
-  .dot-MEDIO { background: var(--warning); }
-  .dot-IMPEGNATIVO { background: var(--danger); }
-  .dot-online { background: #6FA8DC; }
+  .pill-shoot { background: var(--accent); }
+  .pill-VELOCE { background: var(--success); }
+  .pill-MEDIO { background: var(--warning); }
+  .pill-IMPEGNATIVO { background: var(--danger); color: #fff; }
+  .pill-online { background: #6FA8DC; }
 
   .agenda-title {
     font-family: var(--font-display);
@@ -101,11 +151,7 @@
     border-bottom: 1px solid var(--border);
   }
   .agenda-item:last-child { border-bottom: none; }
-  .agenda-icon {
-    width: 8px;
-    border-radius: 4px;
-    flex-shrink: 0;
-  }
+  .agenda-icon { width: 8px; border-radius: 4px; flex-shrink: 0; }
   .agenda-icon.shoot { background: var(--accent); }
   .agenda-icon.VELOCE { background: var(--success); }
   .agenda-icon.MEDIO { background: var(--warning); }
@@ -113,29 +159,38 @@
   .agenda-icon.online { background: #6FA8DC; }
   .agenda-item-title { font-weight: 600; font-size: 14px; }
   .agenda-item-sub { font-size: 13px; color: var(--text-dim); margin-top: 2px; }
+
   .legend {
     display: flex;
     flex-wrap: wrap;
-    gap: 14px;
-    font-size: 12px;
+    gap: 12px;
+    font-size: 11.5px;
     color: var(--text-dim);
-    margin-top: 16px;
+    margin-top: 14px;
   }
   .legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .legend .pill { width: 18px; height: 14px; font-size: 9px; padding: 0; }
 </style>
 </head>
 <body>
 
 <div class="wrap page-content">
   <h1 class="page-title">Calendario</h1>
-  <p style="color:var(--text-dim); margin-bottom: 16px;">Shooting e montaggi, giorno per giorno</p>
+  <p style="color:var(--text-dim); margin-bottom: 4px;">Chi è impegnato, giorno per giorno</p>
 
-  <div class="filter-bar">
-    <div class="field" style="margin-bottom:0;">
-      <label for="person-filter">Filtra per persona</label>
-      <select id="person-filter">
-        <option value="">Tutti</option>
-      </select>
+  <div class="filter-group">
+    <div class="group-label">Persone (puoi selezionarne più di una)</div>
+    <div class="chip-row" id="people-filter-chips">
+      <button class="chip-toggle active" data-id="">Tutti</button>
+    </div>
+  </div>
+
+  <div class="filter-group">
+    <div class="group-label">Tipo di task</div>
+    <div class="segmented" id="type-filter">
+      <button class="segment active" data-type="all">Tutti</button>
+      <button class="segment" data-type="shooting">🎬 Shooting</button>
+      <button class="segment" data-type="product">✂️ Prodotti</button>
     </div>
   </div>
 
@@ -153,11 +208,11 @@
   <div class="day-grid" id="day-grid"></div>
 
   <div class="legend">
-    <span><span class="dot dot-shoot"></span> Shooting</span>
-    <span><span class="dot dot-VELOCE"></span> Montaggio veloce</span>
-    <span><span class="dot dot-MEDIO"></span> Montaggio medio</span>
-    <span><span class="dot dot-IMPEGNATIVO"></span> Montaggio impegnativo</span>
-    <span><span class="dot dot-online"></span> Va online</span>
+    <span><span class="pill pill-shoot">🎬</span> Shooting</span>
+    <span><span class="pill pill-VELOCE">✂️</span> Revisione veloce</span>
+    <span><span class="pill pill-MEDIO">✂️</span> Revisione media</span>
+    <span><span class="pill pill-IMPEGNATIVO">✂️</span> Revisione impegnativa</span>
+    <span><span class="pill pill-online">🚀</span> Va online</span>
   </div>
 
   <h3 class="agenda-title" id="agenda-title">Oggi</h3>
@@ -171,9 +226,11 @@
 <script src="js/layout.js"></script>
 <script>
   let currentProfile = null;
-  let viewedYear, viewedMonth; // mese 0-11
+  let viewedYear, viewedMonth;
   let selectedDateStr;
-  let dayData = {}; // { "yyyy-mm-dd": { shootings: [], editing: [], publish: [] } }
+  let dayData = {}; // { "yyyy-mm-dd": { shootings: [], reviews: [], publish: [] } }
+  let selectedPeopleIds = new Set(); // vuoto = tutti
+  let taskTypeFilter = "all"; // all | shooting | product
 
   const todayStr = toISODate(new Date());
 
@@ -189,10 +246,17 @@
     viewedMonth = today.getMonth();
     selectedDateStr = todayStr;
 
-    await loadPeopleFilter();
-    document.getElementById("person-filter").addEventListener("change", loadMonthData);
+    await loadPeopleChips();
     document.getElementById("prev-month").addEventListener("click", () => changeMonth(-1));
     document.getElementById("next-month").addEventListener("click", () => changeMonth(1));
+    document.querySelectorAll("#type-filter .segment").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll("#type-filter .segment").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        taskTypeFilter = btn.dataset.type;
+        loadMonthData();
+      });
+    });
 
     loadMonthData();
   })();
@@ -204,11 +268,6 @@
     return `${y}-${m}-${day}`;
   }
 
-  function parseLocalDate(str) {
-    const [y, m, d] = str.split("-").map(Number);
-    return new Date(y, m - 1, d);
-  }
-
   function changeMonth(delta) {
     viewedMonth += delta;
     if (viewedMonth < 0) { viewedMonth = 11; viewedYear--; }
@@ -216,24 +275,51 @@
     loadMonthData();
   }
 
-  async function loadPeopleFilter() {
+  async function loadPeopleChips() {
     const { data } = await supabaseClient
       .from("profiles")
       .select("id, full_name, role")
       .in("role", ["project_manager", "operatore"])
       .order("full_name");
 
-    const select = document.getElementById("person-filter");
+    const container = document.getElementById("people-filter-chips");
+    const tuttiBtn = container.querySelector('[data-id=""]');
+
     (data || []).forEach(p => {
-      const opt = document.createElement("option");
-      opt.value = p.id;
-      opt.textContent = p.full_name;
-      select.appendChild(opt);
+      const btn = document.createElement("button");
+      btn.className = "chip-toggle";
+      btn.dataset.id = p.id;
+      btn.textContent = p.full_name;
+      container.appendChild(btn);
+    });
+
+    container.querySelectorAll(".chip-toggle").forEach(btn => {
+      btn.addEventListener("click", () => {
+        if (btn.dataset.id === "") {
+          // "Tutti" azzera ogni selezione individuale
+          selectedPeopleIds.clear();
+          container.querySelectorAll(".chip-toggle").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+        } else {
+          tuttiBtn.classList.remove("active");
+          if (selectedPeopleIds.has(btn.dataset.id)) {
+            selectedPeopleIds.delete(btn.dataset.id);
+          } else {
+            selectedPeopleIds.add(btn.dataset.id);
+          }
+          btn.classList.toggle("active", selectedPeopleIds.has(btn.dataset.id));
+          if (selectedPeopleIds.size === 0) tuttiBtn.classList.add("active");
+        }
+        loadMonthData();
+      });
     });
 
     // Se l'utente loggato è un operatore, filtra di default su se stesso
     if (currentProfile.role === "operatore") {
-      select.value = currentProfile.id;
+      selectedPeopleIds.add(currentProfile.id);
+      tuttiBtn.classList.remove("active");
+      const myBtn = container.querySelector(`[data-id="${currentProfile.id}"]`);
+      if (myBtn) myBtn.classList.add("active");
     }
   }
 
@@ -244,94 +330,91 @@
 
     const rangeStart = toISODate(new Date(viewedYear, viewedMonth, 1));
     const rangeEnd = toISODate(new Date(viewedYear, viewedMonth + 1, 0));
-    const filterId = document.getElementById("person-filter").value;
 
     dayData = {};
 
-    // --- Shooting nel mese ---
-    const { data: shoots } = await supabaseClient
-      .from("shootings")
-      .select("*, projects(client_name), shooting_participants(profile_id, profiles(full_name))")
-      .gte("shoot_date", rangeStart)
-      .lte("shoot_date", rangeEnd);
+    // --- Shooting ---
+    if (taskTypeFilter === "all" || taskTypeFilter === "shooting") {
+      const { data: shoots } = await supabaseClient
+        .from("shootings")
+        .select("*, projects(client_name), shooting_participants(profile_id, profiles(full_name))")
+        .gte("shoot_date", rangeStart)
+        .lte("shoot_date", rangeEnd);
 
-    (shoots || []).forEach(s => {
-      const participantIds = (s.shooting_participants || []).map(p => p.profile_id);
-      if (filterId && !participantIds.includes(filterId)) return;
-      addToDay(s.shoot_date, "shootings", s);
-    });
+      (shoots || []).forEach(s => {
+        const participantIds = (s.shooting_participants || []).map(p => p.profile_id);
+        if (selectedPeopleIds.size > 0 && !participantIds.some(id => selectedPeopleIds.has(id))) return;
+        addToDay(s.shoot_date, "shootings", s);
+      });
+    }
 
-    // --- Montaggi in corso nel mese (overlap tra assigned_date e review_due_date) ---
-    const { data: editing } = await supabaseClient
-      .from("video_products")
-      .select("*, projects(client_name), profiles:assigned_to(full_name)")
-      .lte("assigned_date", rangeEnd)
-      .gte("review_due_date", rangeStart);
+    // --- Prodotti: mostrati solo nel giorno di revisione e nel giorno online (non più "spalmati") ---
+    if (taskTypeFilter === "all" || taskTypeFilter === "product") {
+      const { data: reviews } = await supabaseClient
+        .from("video_products")
+        .select("*, projects(client_name), profiles:assigned_to(full_name)")
+        .gte("review_due_date", rangeStart)
+        .lte("review_due_date", rangeEnd);
 
-    (editing || []).forEach(p => {
-      if (filterId && p.assigned_to !== filterId) return;
-      const start = p.assigned_date > rangeStart ? p.assigned_date : rangeStart;
-      const end = p.review_due_date < rangeEnd ? p.review_due_date : rangeEnd;
-      eachDate(start, end, (d) => addToDay(d, "editing", p));
-    });
+      (reviews || []).forEach(p => {
+        if (selectedPeopleIds.size > 0 && !selectedPeopleIds.has(p.assigned_to)) return;
+        addToDay(p.review_due_date, "reviews", p);
+      });
 
-    // --- Uscite online nel mese ---
-    const { data: publishing } = await supabaseClient
-      .from("video_products")
-      .select("*, projects(client_name), profiles:assigned_to(full_name)")
-      .gte("publish_date", rangeStart)
-      .lte("publish_date", rangeEnd);
+      const { data: publishing } = await supabaseClient
+        .from("video_products")
+        .select("*, projects(client_name), profiles:assigned_to(full_name)")
+        .gte("publish_date", rangeStart)
+        .lte("publish_date", rangeEnd);
 
-    (publishing || []).forEach(p => {
-      if (filterId && p.assigned_to !== filterId) return;
-      addToDay(p.publish_date, "publish", p);
-    });
+      (publishing || []).forEach(p => {
+        if (selectedPeopleIds.size > 0 && !selectedPeopleIds.has(p.assigned_to)) return;
+        addToDay(p.publish_date, "publish", p);
+      });
+    }
 
     renderGrid();
     renderAgenda(selectedDateStr);
   }
 
   function addToDay(dateStr, key, item) {
-    if (!dayData[dateStr]) dayData[dateStr] = { shootings: [], editing: [], publish: [] };
+    if (!dayData[dateStr]) dayData[dateStr] = { shootings: [], reviews: [], publish: [] };
     dayData[dateStr][key].push(item);
-  }
-
-  function eachDate(startStr, endStr, callback) {
-    let d = parseLocalDate(startStr);
-    const end = parseLocalDate(endStr);
-    while (d <= end) {
-      callback(toISODate(d));
-      d.setDate(d.getDate() + 1);
-    }
   }
 
   function renderGrid() {
     const grid = document.getElementById("day-grid");
     const firstDay = new Date(viewedYear, viewedMonth, 1);
     const daysInMonth = new Date(viewedYear, viewedMonth + 1, 0).getDate();
-    const startWeekday = (firstDay.getDay() + 6) % 7; // lunedì = 0
+    const startWeekday = (firstDay.getDay() + 6) % 7;
 
     let html = "";
     for (let i = 0; i < startWeekday; i++) html += `<div class="day-cell empty"></div>`;
 
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = toISODate(new Date(viewedYear, viewedMonth, day));
-      const data = dayData[dateStr] || { shootings: [], editing: [], publish: [] };
+      const data = dayData[dateStr] || { shootings: [], reviews: [], publish: [] };
 
       let classes = "day-cell";
       if (dateStr === todayStr) classes += " today";
       if (dateStr === selectedDateStr) classes += " selected";
 
-      const difficulties = [...new Set(data.editing.map(p => p.difficulty))];
-      let dots = "";
-      if (data.shootings.length) dots += `<span class="dot dot-shoot"></span>`;
-      difficulties.slice(0, 2).forEach(diff => dots += `<span class="dot dot-${diff}"></span>`);
-      if (data.publish.length) dots += `<span class="dot dot-online"></span>`;
+      let pills = "";
+      if (data.shootings.length) {
+        pills += `<span class="pill pill-shoot">🎬${data.shootings.length > 1 ? data.shootings.length : ""}</span>`;
+      }
+      if (data.reviews.length) {
+        const worst = worstDifficulty(data.reviews.map(r => r.difficulty));
+        pills += `<span class="pill pill-${worst}">✂️${data.reviews.length > 1 ? data.reviews.length : ""}</span>`;
+      }
+      if (data.publish.length) {
+        pills += `<span class="pill pill-online">🚀${data.publish.length > 1 ? data.publish.length : ""}</span>`;
+      }
 
       html += `
         <div class="${classes}" data-date="${dateStr}">
           <span class="day-num">${day}</span>
-          <div class="dots-row">${dots}</div>
+          <div class="pill-stack">${pills}</div>
         </div>
       `;
     }
@@ -346,14 +429,19 @@
     });
   }
 
+  function worstDifficulty(list) {
+    if (list.includes("IMPEGNATIVO")) return "IMPEGNATIVO";
+    if (list.includes("MEDIO")) return "MEDIO";
+    return "VELOCE";
+  }
+
   function renderAgenda(dateStr) {
     const title = document.getElementById("agenda-title");
-    const niceDate = new Date(dateStr).toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" });
+    const niceDate = new Date(dateStr + "T00:00:00").toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" });
     title.textContent = dateStr === todayStr ? `Oggi · ${niceDate}` : niceDate;
 
-    const data = dayData[dateStr] || { shootings: [], editing: [], publish: [] };
+    const data = dayData[dateStr] || { shootings: [], reviews: [], publish: [] };
     const container = document.getElementById("agenda-list");
-
     const items = [];
 
     data.shootings.forEach(s => {
@@ -372,15 +460,15 @@
       `);
     });
 
-    data.editing.forEach(p => {
+    data.reviews.forEach(p => {
       items.push(`
         <div class="agenda-item">
           <div class="agenda-icon ${p.difficulty}"></div>
           <div>
-            <div class="agenda-item-title">✂️ ${p.product_name}</div>
+            <div class="agenda-item-title">✂️ ${p.product_name} — pronto per revisione</div>
             <div class="agenda-item-sub">
               ${p.projects ? p.projects.client_name : "—"} · ${p.profiles ? p.profiles.full_name : "—"}<br>
-              Difficoltà: ${p.difficulty} · Revisione entro: ${formatDate(p.review_due_date)}
+              Difficoltà: ${p.difficulty}
             </div>
           </div>
         </div>
@@ -404,11 +492,6 @@
     container.innerHTML = items.length
       ? items.join("")
       : `<p style="color:var(--text-dim); font-size:14px;">Nessun impegno in questo giorno.</p>`;
-  }
-
-  function formatDate(d) {
-    if (!d) return "—";
-    return new Date(d).toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" });
   }
 </script>
 </body>

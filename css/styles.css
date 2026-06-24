@@ -186,18 +186,20 @@ a { color: inherit; }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
-  padding: 9px 2px 8px;
-  font-size: 10.5px;
+  gap: 4px;
+  padding: 11px 2px 10px;
+  font-size: 11px;
   font-family: var(--font-mono);
   letter-spacing: 0;
   text-transform: uppercase;
   color: var(--text-dim);
   text-decoration: none;
+  border: none;
+  background: transparent;
   border-top: 2px solid transparent;
 }
 .bottom-nav-item .nav-icon {
-  font-size: 19px;
+  font-size: 21px;
   line-height: 1;
 }
 .bottom-nav-item .nav-label {
@@ -211,9 +213,39 @@ a { color: inherit; }
   border-top-color: var(--accent);
 }
 
+.nav-more-panel {
+  position: fixed;
+  right: 10px;
+  bottom: calc(74px + env(safe-area-inset-bottom));
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 6px;
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 11;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+  min-width: 160px;
+}
+.nav-more-panel.open { display: flex; }
+.nav-more-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+  border-radius: 8px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 14px;
+}
+.nav-more-item:active { background: var(--surface); }
+.nav-more-item.active { color: var(--accent); }
+.nav-more-item .nav-icon { font-size: 17px; }
+
 /* Lascia spazio in fondo alla pagina per non finire sotto la bottom-nav */
 .page-content {
-  padding-bottom: 88px;
+  padding-bottom: 130px;
 }
 
 /* --- Tabella semplice per liste (progetti, team, ecc.) --- */

@@ -177,18 +177,34 @@ a { color: inherit; }
   border-top: 1px solid var(--border);
   padding-bottom: env(safe-area-inset-bottom);
   z-index: 10;
+  overflow: hidden;
 }
 .bottom-nav-item {
-  flex: 1;
-  text-align: center;
-  padding: 14px 4px 10px;
-  font-size: 12px;
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 9px 2px 8px;
+  font-size: 10.5px;
   font-family: var(--font-mono);
-  letter-spacing: 0.03em;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: var(--text-dim);
   text-decoration: none;
   border-top: 2px solid transparent;
+}
+.bottom-nav-item .nav-icon {
+  font-size: 19px;
+  line-height: 1;
+}
+.bottom-nav-item .nav-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 .bottom-nav-item.active {
   color: var(--accent);

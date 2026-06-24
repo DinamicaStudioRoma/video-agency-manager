@@ -29,21 +29,57 @@ function renderShell(profile, activePage) {
     { id: "calendar", label: "Cal.", icon: "📅", href: "calendar.html", roles: ["admin", "project_manager", "operatore"] },
     { id: "shootings", label: "Shoot", icon: "🎬", href: "shootings.html", roles: ["admin", "project_manager"] },
     { id: "products", label: "Prod.", icon: "✂️", href: "products.html", roles: ["admin", "project_manager"] },
-    { id: "projects", label: "Prog.", icon: "📁", href: "projects.html", roles: ["admin"] },
-    { id: "team", label: "Team", icon: "👥", href: "team.html", roles: ["admin"] },
+    { id: "projects", label: "Progetti", icon: "📁", href: "projects.html", roles: ["admin"], overflow: true },
+    { id: "team", label: "Team", icon: "👥", href: "team.html", roles: ["admin"], overflow: true },
   ];
 
   const visibleItems = navItems.filter(item => item.roles.includes(profile.role));
+  const mainItems = visibleItems.filter(item => !item.overflow);
+  const overflowItems = visibleItems.filter(item => item.overflow);
+  const overflowActive = overflowItems.some(item => item.id === activePage);
 
   const nav = document.createElement("nav");
   nav.className = "bottom-nav";
-  nav.innerHTML = visibleItems.map(item => `
+
+  let navHtml = mainItems.map(item => `
     <a href="${item.href}" class="bottom-nav-item ${item.id === activePage ? "active" : ""}">
       <span class="nav-icon">${item.icon}</span>
       <span class="nav-label">${item.label}</span>
     </a>
   `).join("");
+
+  if (overflowItems.length > 0) {
+    navHtml += `
+      <button type="button" id="nav-more-btn" class="bottom-nav-item ${overflowActive ? "active" : ""}">
+        <span class="nav-icon">⋯</span>
+        <span class="nav-label">Più</span>
+      </button>
+    `;
+  }
+
+  nav.innerHTML = navHtml;
   document.body.appendChild(nav);
+
+  if (overflowItems.length > 0) {
+    const panel = document.createElement("div");
+    panel.className = "nav-more-panel";
+    panel.id = "nav-more-panel";
+    panel.innerHTML = overflowItems.map(item => `
+      <a href="${item.href}" class="nav-more-item ${item.id === activePage ? "active" : ""}">
+        <span class="nav-icon">${item.icon}</span> ${item.label}
+      </a>
+    `).join("");
+    document.body.appendChild(panel);
+
+    const moreBtn = document.getElementById("nav-more-btn");
+    moreBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      panel.classList.toggle("open");
+    });
+    document.addEventListener("click", (e) => {
+      if (!panel.contains(e.target) && e.target !== moreBtn) panel.classList.remove("open");
+    });
+  }
 }
 
 // Verifica che il profilo abbia uno dei ruoli ammessi; altrimenti rimanda alla dashboard

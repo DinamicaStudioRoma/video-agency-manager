@@ -73,7 +73,7 @@
           <input type="date" id="shoot_date" required>
         </div>
         <div class="field">
-          <label for="duration_hours">Durata *</label>
+          <label for="duration_hours">Durata (ore al giorno) *</label>
           <select id="duration_hours" required>
             <option value="">Seleziona...</option>
           </select>
@@ -145,7 +145,7 @@
   function fillDurationOptions() {
     const select = document.getElementById("duration_hours");
     let html = `<option value="">Seleziona...</option>`;
-    for (let h = 0.5; h <= 12; h += 0.5) {
+    for (let h = 0.5; h <= 16; h += 0.5) {
       html += `<option value="${h}">${h} ${h === 1 ? "ora" : "ore"}</option>`;
     }
     select.innerHTML = html;
@@ -215,7 +215,7 @@
         <div class="card" style="margin-bottom:12px;">
           <div class="list-row-title">${s.shoot_name}</div>
           <div class="list-row-sub">
-          ${formatDate(s.shoot_date)}${s.shoot_end_date ? " → " + formatDate(s.shoot_end_date) : ""} · ${s.call_time} · ${s.location} · ${s.duration_hours} ore<br>
+          ${formatDate(s.shoot_date)}${s.shoot_end_date ? " → " + formatDate(s.shoot_end_date) : ""} · ${s.call_time} · ${s.location} · ${s.duration_hours} ore${s.shoot_end_date ? "/giorno" : ""}<br>
             Cliente: ${s.projects ? s.projects.client_name : "—"}<br>
             Convocati: ${names || "—"}
           </div>

@@ -483,7 +483,7 @@
             <div class="agenda-item-title">🎬 ${s.shoot_name}</div>
             <div class="agenda-item-sub">
               ${s.projects ? s.projects.client_name : "—"} · ${s.call_time} · ${s.location}<br>
-              Durata: ${s.duration_hours} ore${multiDayNote} · Convocati: ${names || "—"}
+              Durata: ${s.duration_hours} ore${multiDayNote ? "/giorno" : ""}${multiDayNote} · Convocati: ${names || "—"}
             </div>
           </div>
         </div>

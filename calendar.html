@@ -268,6 +268,20 @@
     return `${y}-${m}-${day}`;
   }
 
+  function parseLocalDate(str) {
+    const [y, m, d] = str.split("-").map(Number);
+    return new Date(y, m - 1, d);
+  }
+
+  function eachDate(startStr, endStr, callback) {
+    let d = parseLocalDate(startStr);
+    const end = parseLocalDate(endStr);
+    while (d <= end) {
+      callback(toISODate(d));
+      d.setDate(d.getDate() + 1);
+    }
+  }
+
   function changeMonth(delta) {
     viewedMonth += delta;
     if (viewedMonth < 0) { viewedMonth = 11; viewedYear--; }
@@ -333,18 +347,26 @@
 
     dayData = {};
 
-    // --- Shooting ---
+    // --- Shooting (incluso il range esteso per shooting su più giorni che iniziano prima del mese visualizzato) ---
     if (taskTypeFilter === "all" || taskTypeFilter === "shooting") {
+      const queryBufferStart = toISODate(new Date(viewedYear, viewedMonth, 1 - 30));
+
       const { data: shoots } = await supabaseClient
         .from("shootings")
         .select("*, projects(client_name), shooting_participants(profile_id, profiles(full_name))")
-        .gte("shoot_date", rangeStart)
+        .gte("shoot_date", queryBufferStart)
         .lte("shoot_date", rangeEnd);
 
       (shoots || []).forEach(s => {
         const participantIds = (s.shooting_participants || []).map(p => p.profile_id);
         if (selectedPeopleIds.size > 0 && !participantIds.some(id => selectedPeopleIds.has(id))) return;
-        addToDay(s.shoot_date, "shootings", s);
+
+        const effectiveEnd = s.shoot_end_date && s.shoot_end_date > s.shoot_date ? s.shoot_end_date : s.shoot_date;
+        if (effectiveEnd < rangeStart) return; // lo shooting è finito prima del mese visualizzato
+
+        const spanStart = s.shoot_date > rangeStart ? s.shoot_date : rangeStart;
+        const spanEnd = effectiveEnd < rangeEnd ? effectiveEnd : rangeEnd;
+        eachDate(spanStart, spanEnd, (d) => addToDay(d, "shootings", s));
       });
     }
 
@@ -435,6 +457,11 @@
     return "VELOCE";
   }
 
+  function formatDate(d) {
+    if (!d) return "—";
+    return parseLocalDate(d).toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" });
+  }
+
   function renderAgenda(dateStr) {
     const title = document.getElementById("agenda-title");
     const niceDate = new Date(dateStr + "T00:00:00").toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" });
@@ -446,6 +473,9 @@
 
     data.shootings.forEach(s => {
       const names = (s.shooting_participants || []).map(p => p.profiles?.full_name).filter(Boolean).join(", ");
+      const multiDayNote = s.shoot_end_date && s.shoot_end_date > s.shoot_date
+        ? ` (giorno impegnato: ${formatDate(s.shoot_date)} → ${formatDate(s.shoot_end_date)})`
+        : "";
       items.push(`
         <div class="agenda-item">
           <div class="agenda-icon shoot"></div>
@@ -453,7 +483,7 @@
             <div class="agenda-item-title">🎬 ${s.shoot_name}</div>
             <div class="agenda-item-sub">
               ${s.projects ? s.projects.client_name : "—"} · ${s.call_time} · ${s.location}<br>
-              Durata: ${s.duration_hours} ore · Convocati: ${names || "—"}
+              Durata: ${s.duration_hours} ore${multiDayNote} · Convocati: ${names || "—"}
             </div>
           </div>
         </div>
@@ -468,7 +498,7 @@
             <div class="agenda-item-title">✂️ ${p.product_name} — pronto per revisione</div>
             <div class="agenda-item-sub">
               ${p.projects ? p.projects.client_name : "—"} · ${p.profiles ? p.profiles.full_name : "—"}<br>
-              Difficoltà: ${p.difficulty}
+              Difficoltà: ${p.difficulty} · Ore di lavorazione: ${p.work_hours}
             </div>
           </div>
         </div>

@@ -61,6 +61,13 @@
       </div>
 
       <div class="field">
+        <label for="work_hours">Ore di lavorazione *</label>
+        <select id="work_hours" required>
+          <option value="">Seleziona...</option>
+        </select>
+      </div>
+
+      <div class="field">
         <label for="difficulty">Difficoltà *</label>
         <select id="difficulty" required>
           <option value="">Seleziona...</option>
@@ -107,10 +114,20 @@
     if (!requireRole(currentProfile, ["admin", "project_manager"])) return;
 
     renderShell(currentProfile, "products");
+    fillWorkHoursOptions();
     loadProjects();
     loadOperators();
     loadProducts();
   })();
+
+  function fillWorkHoursOptions() {
+    const select = document.getElementById("work_hours");
+    let html = `<option value="">Seleziona...</option>`;
+    for (let h = 1; h <= 20; h++) {
+      html += `<option value="${h}">${h} ${h === 1 ? "ora" : "ore"}</option>`;
+    }
+    select.innerHTML = html;
+  }
 
   async function loadProjects() {
     const { data, error } = await supabaseClient
@@ -168,7 +185,8 @@
         <div class="list-row-sub">
           Cliente: ${p.projects ? p.projects.client_name : "—"}<br>
           Assegnato a: ${p.profiles ? p.profiles.full_name : "—"}<br>
-          Revisione: ${formatDate(p.review_due_date)} · Online: ${formatDate(p.publish_date)}
+          Revisione: ${formatDate(p.review_due_date)} · Online: ${formatDate(p.publish_date)}<br>
+          Ore di lavorazione: ${p.work_hours} ${p.work_hours === 1 ? "ora" : "ore"}
         </div>
       </div>
     `).join("");
@@ -192,6 +210,7 @@
       assigned_to: document.getElementById("assigned_to").value,
       review_due_date: document.getElementById("review_due_date").value,
       publish_date: document.getElementById("publish_date").value,
+      work_hours: parseInt(document.getElementById("work_hours").value),
       difficulty: document.getElementById("difficulty").value,
       script: document.getElementById("script").value.trim() || null,
       reference: document.getElementById("reference").value.trim() || null,
@@ -200,7 +219,7 @@
       // assigned_date si compila da sola (default nel database = data di oggi)
     };
 
-    if (!payload.project_id || !payload.assigned_to) {
+    if (!payload.project_id || !payload.assigned_to || !payload.work_hours) {
       errorMsg.textContent = "Compila tutti i campi obbligatori.";
       return;
     }

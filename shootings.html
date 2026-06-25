@@ -80,6 +80,11 @@
         </div>
       </div>
 
+      <div class="field">
+        <label for="shoot_end_date">Data di fine (opzionale — solo per shooting su più giorni)</label>
+        <input type="date" id="shoot_end_date">
+      </div>
+
       <div class="row-2">
         <div class="field">
           <label for="call_time">Orario di convocazione *</label>
@@ -210,7 +215,7 @@
         <div class="card" style="margin-bottom:12px;">
           <div class="list-row-title">${s.shoot_name}</div>
           <div class="list-row-sub">
-            ${formatDate(s.shoot_date)} · ${s.call_time} · ${s.location} · ${s.duration_hours} ore<br>
+          ${formatDate(s.shoot_date)}${s.shoot_end_date ? " → " + formatDate(s.shoot_end_date) : ""} · ${s.call_time} · ${s.location} · ${s.duration_hours} ore<br>
             Cliente: ${s.projects ? s.projects.client_name : "—"}<br>
             Convocati: ${names || "—"}
           </div>
@@ -241,6 +246,7 @@
       project_id: document.getElementById("project_id").value,
       shoot_name: document.getElementById("shoot_name").value.trim(),
       shoot_date: document.getElementById("shoot_date").value,
+      shoot_end_date: document.getElementById("shoot_end_date").value || null,
       duration_hours: parseFloat(document.getElementById("duration_hours").value),
       call_time: document.getElementById("call_time").value,
       location: document.getElementById("location").value.trim(),
@@ -251,6 +257,11 @@
 
     if (!payload.project_id) {
       errorMsg.textContent = "Seleziona un cliente/contratto.";
+      return;
+    }
+
+    if (payload.shoot_end_date && payload.shoot_end_date < payload.shoot_date) {
+      errorMsg.textContent = "La data di fine non può essere precedente alla data di inizio.";
       return;
     }
 

@@ -295,6 +295,18 @@ a { color: inherit; }
 }
 .helper-card strong { color: var(--text); }
 
+/* --- Riga meta delle card (cliente + data): più visibile dei dettagli secondari --- */
+.card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 6px 0 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+.card-meta span { display: inline-flex; align-items: center; gap: 5px; }
+
 /* --- Barre di avanzamento contrattuale --- */
 .progress-block { margin-top: 14px; }
 .progress-label {

@@ -163,8 +163,7 @@
   async function loadProducts() {
     const { data, error } = await supabaseClient
       .from("video_products")
-      .select("*, projects(client_name), profiles:assigned_to(full_name)")
-      .order("review_due_date", { ascending: true });
+      .select("*, projects(client_name), profiles:assigned_to(full_name)");
 
     const container = document.getElementById("products-list");
     if (error) {
@@ -176,7 +175,14 @@
       return;
     }
 
-    container.innerHTML = data.map(p => `
+    const todayStr = toISODate(new Date());
+    const upcoming = data.filter(p => p.review_due_date >= todayStr);
+    const done = data.filter(p => p.review_due_date < todayStr);
+
+    upcoming.sort((a, b) => a.review_due_date.localeCompare(b.review_due_date));
+    done.sort((a, b) => b.review_due_date.localeCompare(a.review_due_date));
+
+    const renderCard = (p) => `
       <div class="card" style="margin-bottom:12px;">
         <div style="display:flex; justify-content:space-between; align-items:flex-start;">
           <div class="list-row-title">${p.product_name}</div>
@@ -189,7 +195,26 @@
           Ore di lavorazione: ${p.work_hours} ${p.work_hours === 1 ? "ora" : "ore"}
         </div>
       </div>
-    `).join("");
+    `;
+
+    let html = `<div class="section-title" style="margin-top:0;">Da svolgere (${upcoming.length})</div>`;
+    html += upcoming.length
+      ? upcoming.map(renderCard).join("")
+      : `<p style="color:var(--text-dim); font-size:14px;">Nessun prodotto in corso.</p>`;
+
+    html += `<div class="section-title">Completati (${done.length})</div>`;
+    html += done.length
+      ? done.map(renderCard).join("")
+      : `<p style="color:var(--text-dim); font-size:14px;">Nessun prodotto completato ancora.</p>`;
+
+    container.innerHTML = html;
+  }
+
+  function toISODate(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
   }
 
   function formatDate(d) {

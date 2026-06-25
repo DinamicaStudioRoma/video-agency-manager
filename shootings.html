@@ -196,8 +196,7 @@
   async function loadShootings() {
     const { data, error } = await supabaseClient
       .from("shootings")
-      .select("*, projects(client_name, project_name), shooting_participants(profiles(full_name))")
-      .order("shoot_date", { ascending: true });
+      .select("*, projects(client_name, project_name), shooting_participants(profiles(full_name))");
 
     const container = document.getElementById("shoots-list");
     if (error) {
@@ -209,7 +208,19 @@
       return;
     }
 
-    container.innerHTML = data.map(s => {
+    const todayStr = toISODate(new Date());
+    const upcoming = [];
+    const done = [];
+
+    data.forEach(s => {
+      const effectiveEnd = s.shoot_end_date && s.shoot_end_date > s.shoot_date ? s.shoot_end_date : s.shoot_date;
+      if (effectiveEnd < todayStr) done.push(s); else upcoming.push(s);
+    });
+
+    upcoming.sort((a, b) => a.shoot_date.localeCompare(b.shoot_date));
+    done.sort((a, b) => b.shoot_date.localeCompare(a.shoot_date));
+
+    const renderCard = (s) => {
       const names = (s.shooting_participants || []).map(p => p.profiles?.full_name).filter(Boolean).join(", ");
       return `
         <div class="card" style="margin-bottom:12px;">
@@ -221,7 +232,26 @@
           </div>
         </div>
       `;
-    }).join("");
+    };
+
+    let html = `<div class="section-title" style="margin-top:0;">Da svolgere (${upcoming.length})</div>`;
+    html += upcoming.length
+      ? upcoming.map(renderCard).join("")
+      : `<p style="color:var(--text-dim); font-size:14px;">Nessuno shooting in programma.</p>`;
+
+    html += `<div class="section-title">Completati (${done.length})</div>`;
+    html += done.length
+      ? done.map(renderCard).join("")
+      : `<p style="color:var(--text-dim); font-size:14px;">Nessuno shooting completato ancora.</p>`;
+
+    container.innerHTML = html;
+  }
+
+  function toISODate(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
   }
 
   function formatDate(d) {

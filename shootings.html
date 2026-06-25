@@ -222,12 +222,16 @@
 
     const renderCard = (s) => {
       const names = (s.shooting_participants || []).map(p => p.profiles?.full_name).filter(Boolean).join(", ");
+      const dateLabel = formatDate(s.shoot_date) + (s.shoot_end_date ? " → " + formatDate(s.shoot_end_date) : "");
       return `
         <div class="card" style="margin-bottom:12px;">
           <div class="list-row-title">${s.shoot_name}</div>
+          <div class="card-meta">
+            <span>🏛️ ${s.projects ? s.projects.client_name : "—"}</span>
+            <span>📅 ${dateLabel}</span>
+          </div>
           <div class="list-row-sub">
-          ${formatDate(s.shoot_date)}${s.shoot_end_date ? " → " + formatDate(s.shoot_end_date) : ""} · ${s.call_time} · ${s.location} · ${s.duration_hours} ore${s.shoot_end_date ? "/giorno" : ""}<br>
-            Cliente: ${s.projects ? s.projects.client_name : "—"}<br>
+            ${s.call_time} · ${s.location} · ${s.duration_hours} ore${s.shoot_end_date ? "/giorno" : ""}<br>
             Convocati: ${names || "—"}
           </div>
         </div>

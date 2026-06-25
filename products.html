@@ -188,11 +188,13 @@
           <div class="list-row-title">${p.product_name}</div>
           <span class="diff-badge diff-${p.difficulty}">${p.difficulty}</span>
         </div>
+        <div class="card-meta">
+          <span>🏛️ ${p.projects ? p.projects.client_name : "—"}</span>
+          <span>📅 Revisione: ${formatDate(p.review_due_date)}</span>
+        </div>
         <div class="list-row-sub">
-          Cliente: ${p.projects ? p.projects.client_name : "—"}<br>
           Assegnato a: ${p.profiles ? p.profiles.full_name : "—"}<br>
-          Revisione: ${formatDate(p.review_due_date)} · Online: ${formatDate(p.publish_date)}<br>
-          Ore di lavorazione: ${p.work_hours} ${p.work_hours === 1 ? "ora" : "ore"}
+          Online: ${formatDate(p.publish_date)} · Ore di lavorazione: ${p.work_hours} ${p.work_hours === 1 ? "ora" : "ore"}
         </div>
       </div>
     `;

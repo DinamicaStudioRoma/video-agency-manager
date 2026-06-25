@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Report · Video Agency Manager</title>
+<link rel="stylesheet" href="css/styles.css">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#14161b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  .wrap { max-width: 720px; margin: 0 auto; padding-top: 32px; padding-left: 20px; padding-right: 20px; }
+  .page-title { font-family: var(--font-display); font-size: 24px; margin-bottom: 6px; }
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 480px) { .row-2 { grid-template-columns: 1fr; } }
+  .preview-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .preview-row:last-child { border-bottom: none; }
+</style>
+</head>
+<body>
+
+<div class="wrap page-content">
+  <h1 class="page-title">Report</h1>
+  <p style="color:var(--text-dim); margin-bottom: 24px;">Esporta in Excel tutti i task, con stato e tempo impegnato</p>
+
+  <div class="card">
+    <div class="field">
+      <label for="project_filter">Cliente / progetto</label>
+      <select id="project_filter">
+        <option value="">Tutti i progetti</option>
+      </select>
+    </div>
+
+    <div class="row-2">
+      <div class="field">
+        <label for="date_from">Consegna da (opzionale)</label>
+        <input type="date" id="date_from">
+      </div>
+      <div class="field">
+        <label for="date_to">Consegna a (opzionale)</label>
+        <input type="date" id="date_to">
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="download-btn" style="width:100%;">📥 Scarica Excel</button>
+    <p class="error-msg" id="error-msg"></p>
+    <p class="success-msg" id="success-msg"></p>
+  </div>
+
+  <div class="section-title">Anteprima (prime righe)</div>
+  <div class="card" id="preview-box">
+    <p style="color:var(--text-dim); font-size:14px;">Caricamento...</p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/layout.js"></script>
+<script>
+  let currentProfile = null;
+  let allRows = [];
+
+  (async () => {
+    await requireAuth();
+    currentProfile = await getCurrentProfile();
+    if (!requireRole(currentProfile, ["admin", "project_manager"])) return;
+
+    renderShell(currentProfile, "report");
+    await loadProjectFilter();
+    await buildRows();
+
+    document.getElementById("project_filter").addEventListener("change", renderPreview);
+    document.getElementById("date_from").addEventListener("change", renderPreview);
+    document.getElementById("date_to").addEventListener("change", renderPreview);
+    document.getElementById("download-btn").addEventListener("click", downloadExcel);
+
+    renderPreview();
+  })();
+
+  function toISODate(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+
+  function formatDate(d) {
+    if (!d) return "—";
+    const [y, m, day] = d.split("-");
+    return `${day}/${m}/${y}`;
+  }
+
+  async function loadProjectFilter() {
+    const { data } = await supabaseClient
+      .from("projects")
+      .select("id, client_name, project_name")
+      .order("client_name");
+
+    const select = document.getElementById("project_filter");
+    (data || []).forEach(p => {
+      const opt = document.createElement("option");
+      opt.value = p.id;
+      opt.textContent = `${p.client_name} — ${p.project_name}`;
+      select.appendChild(opt);
+    });
+  }
+
+  async function buildRows() {
+    const todayStr = toISODate(new Date());
+
+    const { data: shoots } = await supabaseClient
+      .from("shootings")
+      .select("*, projects(client_name, project_name), shooting_participants(profiles(full_name))");
+
+    const { data: products } = await supabaseClient
+      .from("video_products")
+      .select("*, projects(client_name, project_name), profiles:assigned_to(full_name)");
+
+    const rows = [];
+
+    (shoots || []).forEach(s => {
+      const deliveryDate = s.shoot_end_date && s.shoot_end_date > s.shoot_date ? s.shoot_end_date : s.shoot_date;
+      const names = (s.shooting_participants || []).map(p => p.profiles?.full_name).filter(Boolean).join(", ");
+      rows.push({
+        project_id: s.project_id,
+        client_name: s.projects ? s.projects.client_name : "—",
+        project_name: s.projects ? s.projects.project_name : "—",
+        task_type: "Shooting",
+        task_name: s.shoot_name,
+        time_spent: `${s.duration_hours} ore${s.shoot_end_date ? "/giorno" : ""}`,
+        delivery_date: deliveryDate,
+        status: deliveryDate < todayStr ? "Completato" : "Da svolgere",
+        people: names || "—",
+      });
+    });
+
+    (products || []).forEach(p => {
+      rows.push({
+        project_id: p.project_id,
+        client_name: p.projects ? p.projects.client_name : "—",
+        project_name: p.projects ? p.projects.project_name : "—",
+        task_type: "Prodotto video",
+        task_name: p.product_name,
+        time_spent: `${p.work_hours} ore`,
+        delivery_date: p.review_due_date,
+        status: p.review_due_date < todayStr ? "Completato" : "Da svolgere",
+        people: p.profiles ? p.profiles.full_name : "—",
+      });
+    });
+
+    rows.sort((a, b) => a.client_name.localeCompare(b.client_name) || a.delivery_date.localeCompare(b.delivery_date));
+    allRows = rows;
+  }
+
+  function getFilteredRows() {
+    const projectId = document.getElementById("project_filter").value;
+    const dateFrom = document.getElementById("date_from").value;
+    const dateTo = document.getElementById("date_to").value;
+
+    return allRows.filter(r => {
+      if (projectId && r.project_id !== projectId) return false;
+      if (dateFrom && r.delivery_date < dateFrom) return false;
+      if (dateTo && r.delivery_date > dateTo) return false;
+      return true;
+    });
+  }
+
+  function renderPreview() {
+    const rows = getFilteredRows();
+    const box = document.getElementById("preview-box");
+
+    if (!rows.length) {
+      box.innerHTML = `<p style="color:var(--text-dim); font-size:14px;">Nessun task corrisponde ai filtri selezionati.</p>`;
+      return;
+    }
+
+    const preview = rows.slice(0, 8);
+    box.innerHTML = preview.map(r => `
+      <div class="preview-row">
+        <span>${r.task_type === "Shooting" ? "🎬" : "✂️"} ${r.task_name} — ${r.client_name}</span>
+        <span style="color:var(--text-dim);">${formatDate(r.delivery_date)}</span>
+      </div>
+    `).join("") + (rows.length > 8 ? `<p style="color:var(--text-dim); font-size:12px; margin-top:8px;">+ altri ${rows.length - 8} task nel file completo</p>` : "");
+  }
+
+  function downloadExcel() {
+    const errorMsg = document.getElementById("error-msg");
+    const successMsg = document.getElementById("success-msg");
+    errorMsg.textContent = "";
+    successMsg.textContent = "";
+
+    const rows = getFilteredRows();
+    if (!rows.length) {
+      errorMsg.textContent = "Nessun task da esportare con i filtri selezionati.";
+      return;
+    }
+
+    const excelRows = rows.map(r => ({
+      "Nome cliente": r.client_name,
+      "Nome contratto": r.project_name,
+      "Tipologia task": r.task_type,
+      "Nome task": r.task_name,
+      "Tempo impegnato": r.time_spent,
+      "Data di consegna": formatDate(r.delivery_date),
+      "Stato": r.status,
+      "Utenti coinvolti": r.people,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(excelRows);
+    worksheet["!cols"] = [
+      { wch: 22 }, { wch: 22 }, { wch: 14 }, { wch: 30 },
+      { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 28 },
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Report task");
+
+    const todayLabel = toISODate(new Date());
+    XLSX.writeFile(workbook, `report-task-${todayLabel}.xlsx`);
+
+    successMsg.textContent = `Esportati ${rows.length} task con successo!`;
+  }
+</script>
+</body>
+</html>

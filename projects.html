@@ -24,7 +24,7 @@
   <h1 class="page-title">Progetti &amp; contratti</h1>
   <p style="color:var(--text-dim); margin-bottom: 24px;">Il perimetro contrattuale di ogni cliente</p>
 
-  <div class="card">
+  <div class="card" id="create-project-card">
     <form id="project-form">
       <div class="field">
         <label for="client_name">Nome cliente *</label>
@@ -96,9 +96,13 @@
   (async () => {
     await requireAuth();
     currentProfile = await getCurrentProfile();
-    if (!requireRole(currentProfile, ["admin"])) return;
+    if (!requireRole(currentProfile, ["admin", "project_manager"])) return;
 
     renderShell(currentProfile, "projects");
+
+    if (currentProfile.role !== "admin") {
+      document.getElementById("create-project-card").style.display = "none";
+    }
     loadProjectManagers();
     loadProjects();
   })();

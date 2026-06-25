@@ -29,8 +29,9 @@ function renderShell(profile, activePage) {
     { id: "calendar", label: "Cal.", icon: "📅", href: "calendar.html", roles: ["admin", "project_manager", "operatore"] },
     { id: "shootings", label: "Shoot", icon: "🎬", href: "shootings.html", roles: ["admin", "project_manager"] },
     { id: "products", label: "Prod.", icon: "✂️", href: "products.html", roles: ["admin", "project_manager"] },
-    { id: "projects", label: "Progetti", icon: "📁", href: "projects.html", roles: ["admin"], overflow: true },
+    { id: "projects", label: "Progetti", icon: "📁", href: "projects.html", roles: ["admin", "project_manager"], overflow: true },
     { id: "team", label: "Team", icon: "👥", href: "team.html", roles: ["admin"], overflow: true },
+    { id: "report", label: "Report", icon: "📊", href: "report.html", roles: ["admin", "project_manager"], overflow: true },
   ];
 
   const visibleItems = navItems.filter(item => item.roles.includes(profile.role));

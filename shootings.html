@@ -117,6 +117,17 @@
     </form>
   </div>
 
+  <div id="conflict-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-box">
+      <h3>⚠️ Attenzione</h3>
+      <p id="conflict-message"></p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="conflict-cancel">Annulla</button>
+        <button class="btn btn-primary" id="conflict-confirm">Assegna comunque</button>
+      </div>
+    </div>
+  </div>
+
   <div class="section-title">Prossimi shooting</div>
   <div id="shoots-list">
     <p style="color:var(--text-dim); font-size:14px;">Caricamento...</p>
@@ -263,6 +274,67 @@
     return new Date(d).toLocaleDateString("it-IT", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" });
   }
 
+  function toISODateGeneric(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+
+  function parseLocalDate(str) {
+    const [y, m, d] = str.split("-").map(Number);
+    return new Date(y, m - 1, d);
+  }
+
+  function getDateRange(startStr, endStr) {
+    const dates = [];
+    let d = parseLocalDate(startStr);
+    const end = parseLocalDate(endStr || startStr);
+    while (d <= end) {
+      dates.push(toISODateGeneric(d));
+      d.setDate(d.getDate() + 1);
+    }
+    return dates;
+  }
+
+  // Controlla, per ogni persona convocata, se ha già uno shooting/prodotto assegnato o è OFF in una di queste date
+  async function findConflicts(checkedIds, dateList) {
+    const conflicts = [];
+
+    const [{ data: shoots }, { data: products }, { data: offs }] = await Promise.all([
+      supabaseClient.from("shootings").select("shoot_date, shoot_end_date, shoot_name, shooting_participants(profile_id, profiles(full_name))"),
+      supabaseClient.from("video_products").select("review_due_date, publish_date, product_name, assigned_to, profiles:assigned_to(full_name)"),
+      supabaseClient.from("days_off").select("profile_id, off_date, profiles(full_name)"),
+    ]);
+
+    (shoots || []).forEach(s => {
+      const span = getDateRange(s.shoot_date, s.shoot_end_date || s.shoot_date);
+      const overlap = dateList.some(d => span.includes(d));
+      if (!overlap) return;
+      (s.shooting_participants || []).forEach(p => {
+        if (checkedIds.includes(p.profile_id)) {
+          conflicts.push(`${p.profiles?.full_name || "Una persona"} ha già lo shooting "${s.shoot_name}" in quei giorni.`);
+        }
+      });
+    });
+
+    (products || []).forEach(p => {
+      if (!checkedIds.includes(p.assigned_to)) return;
+      if (dateList.includes(p.review_due_date) || dateList.includes(p.publish_date)) {
+        conflicts.push(`${p.profiles?.full_name || "Una persona"} ha già una consegna prodotto ("${p.product_name}") in quei giorni.`);
+      }
+    });
+
+    (offs || []).forEach(o => {
+      if (!checkedIds.includes(o.profile_id)) return;
+      if (dateList.includes(o.off_date)) {
+        conflicts.push(`${o.profiles?.full_name || "Una persona"} è OFF il ${formatDate(o.off_date)}.`);
+      }
+    });
+
+    return [...new Set(conflicts)];
+  }
+
   document.getElementById("shoot-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const errorMsg = document.getElementById("error-msg");
@@ -299,6 +371,29 @@
       return;
     }
 
+    const dateList = getDateRange(payload.shoot_date, payload.shoot_end_date);
+    const conflicts = await findConflicts(checkedIds, dateList);
+
+    if (conflicts.length > 0) {
+      document.getElementById("conflict-message").innerHTML = "Attenzione:<br>" + conflicts.join("<br>") + "<br><br>Vuoi assegnare comunque lo shooting?";
+      document.getElementById("conflict-modal").style.display = "flex";
+
+      document.getElementById("conflict-cancel").onclick = () => {
+        document.getElementById("conflict-modal").style.display = "none";
+      };
+      document.getElementById("conflict-confirm").onclick = () => {
+        document.getElementById("conflict-modal").style.display = "none";
+        submitShooting(payload, checkedIds);
+      };
+      return;
+    }
+
+    submitShooting(payload, checkedIds);
+  });
+
+  async function submitShooting(payload, checkedIds) {
+    const errorMsg = document.getElementById("error-msg");
+    const successMsg = document.getElementById("success-msg");
     const submitBtn = document.getElementById("submit-btn");
     submitBtn.disabled = true;
     submitBtn.textContent = "Creazione in corso...";
@@ -331,7 +426,7 @@
     document.getElementById("shoot-form").reset();
     document.querySelectorAll(".checkbox-chip").forEach(c => c.classList.remove("checked"));
     loadShootings();
-  });
+  }
 </script>
 </body>
 </html>

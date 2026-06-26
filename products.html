@@ -96,6 +96,17 @@
     </form>
   </div>
 
+  <div id="conflict-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-box">
+      <h3>⚠️ Attenzione</h3>
+      <p id="conflict-message"></p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="conflict-cancel">Annulla</button>
+        <button class="btn btn-primary" id="conflict-confirm">Assegna comunque</button>
+      </div>
+    </div>
+  </div>
+
   <div class="section-title">Prodotti in corso</div>
   <div id="products-list">
     <p style="color:var(--text-dim); font-size:14px;">Caricamento...</p>
@@ -224,6 +235,67 @@
     return new Date(d).toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit", year: "numeric" });
   }
 
+  function toISODateGeneric(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+
+  function parseLocalDate(str) {
+    const [y, m, d] = str.split("-").map(Number);
+    return new Date(y, m - 1, d);
+  }
+
+  function getDateRange(startStr, endStr) {
+    const dates = [];
+    let d = parseLocalDate(startStr);
+    const end = parseLocalDate(endStr || startStr);
+    while (d <= end) {
+      dates.push(toISODateGeneric(d));
+      d.setDate(d.getDate() + 1);
+    }
+    return dates;
+  }
+
+  // Controlla se l'operatore assegnato ha già uno shooting/prodotto o è OFF nelle date chiave (revisione, online)
+  async function findConflicts(assignedTo, dateList) {
+    const conflicts = [];
+
+    const [{ data: shoots }, { data: products }, { data: offs }] = await Promise.all([
+      supabaseClient.from("shootings").select("shoot_date, shoot_end_date, shoot_name, shooting_participants(profile_id)"),
+      supabaseClient.from("video_products").select("review_due_date, publish_date, product_name, assigned_to"),
+      supabaseClient.from("days_off").select("profile_id, off_date"),
+    ]);
+
+    const personName = document.getElementById("assigned_to").selectedOptions[0]?.textContent || "La persona assegnata";
+
+    (shoots || []).forEach(s => {
+      const isParticipant = (s.shooting_participants || []).some(p => p.profile_id === assignedTo);
+      if (!isParticipant) return;
+      const span = getDateRange(s.shoot_date, s.shoot_end_date || s.shoot_date);
+      if (dateList.some(d => span.includes(d))) {
+        conflicts.push(`${personName} ha già lo shooting "${s.shoot_name}" in quei giorni.`);
+      }
+    });
+
+    (products || []).forEach(p => {
+      if (p.assigned_to !== assignedTo) return;
+      if (dateList.includes(p.review_due_date) || dateList.includes(p.publish_date)) {
+        conflicts.push(`${personName} ha già una consegna prodotto ("${p.product_name}") in quei giorni.`);
+      }
+    });
+
+    (offs || []).forEach(o => {
+      if (o.profile_id !== assignedTo) return;
+      if (dateList.includes(o.off_date)) {
+        conflicts.push(`${personName} è OFF il ${formatDate(o.off_date)}.`);
+      }
+    });
+
+    return [...new Set(conflicts)];
+  }
+
   document.getElementById("product-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const errorMsg = document.getElementById("error-msg");
@@ -251,6 +323,29 @@
       return;
     }
 
+    const dateList = [...new Set([payload.review_due_date, payload.publish_date])];
+    const conflicts = await findConflicts(payload.assigned_to, dateList);
+
+    if (conflicts.length > 0) {
+      document.getElementById("conflict-message").innerHTML = "Attenzione:<br>" + conflicts.join("<br>") + "<br><br>Vuoi assegnare comunque il prodotto?";
+      document.getElementById("conflict-modal").style.display = "flex";
+
+      document.getElementById("conflict-cancel").onclick = () => {
+        document.getElementById("conflict-modal").style.display = "none";
+      };
+      document.getElementById("conflict-confirm").onclick = () => {
+        document.getElementById("conflict-modal").style.display = "none";
+        submitProduct(payload);
+      };
+      return;
+    }
+
+    submitProduct(payload);
+  });
+
+  async function submitProduct(payload) {
+    const errorMsg = document.getElementById("error-msg");
+    const successMsg = document.getElementById("success-msg");
     const submitBtn = document.getElementById("submit-btn");
     submitBtn.disabled = true;
     submitBtn.textContent = "Assegnazione in corso...";
@@ -268,7 +363,7 @@
     successMsg.textContent = "Prodotto assegnato con successo!";
     document.getElementById("product-form").reset();
     loadProducts();
-  });
+  }
 </script>
 </body>
 </html>

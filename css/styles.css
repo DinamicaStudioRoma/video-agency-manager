@@ -295,6 +295,43 @@ a { color: inherit; }
 }
 .helper-card strong { color: var(--text); }
 
+/* --- Popup modale di conflitto (assegnazione a persona già occupata/OFF) --- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 50;
+}
+.modal-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px;
+  max-width: 380px;
+  width: 100%;
+}
+.modal-box h3 {
+  font-family: var(--font-display);
+  font-size: 17px;
+  margin: 0 0 12px;
+  color: var(--warning);
+}
+.modal-box p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text);
+  margin: 0 0 18px;
+}
+.modal-actions {
+  display: flex;
+  gap: 10px;
+}
+.modal-actions .btn { flex: 1; }
+
 /* --- Riga meta delle card (cliente + data): più visibile dei dettagli secondari --- */
 .card-meta {
   display: flex;

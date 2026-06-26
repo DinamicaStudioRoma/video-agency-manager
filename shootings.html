@@ -302,8 +302,8 @@
     const conflicts = [];
 
     const [{ data: shoots }, { data: products }, { data: offs }] = await Promise.all([
-      supabaseClient.from("shootings").select("shoot_date, shoot_end_date, shoot_name, shooting_participants(profile_id, profiles(full_name))"),
-      supabaseClient.from("video_products").select("review_due_date, publish_date, product_name, assigned_to, profiles:assigned_to(full_name)"),
+      supabaseClient.from("shootings").select("shoot_date, shoot_end_date, shoot_name, projects(client_name), shooting_participants(profile_id, profiles(full_name))"),
+      supabaseClient.from("video_products").select("review_due_date, publish_date, product_name, assigned_to, projects(client_name), profiles:assigned_to(full_name)"),
       supabaseClient.from("days_off").select("profile_id, off_date, profiles(full_name)"),
     ]);
 
@@ -313,7 +313,7 @@
       if (!overlap) return;
       (s.shooting_participants || []).forEach(p => {
         if (checkedIds.includes(p.profile_id)) {
-          conflicts.push(`${p.profiles?.full_name || "Una persona"} ha già lo shooting "${s.shoot_name}" in quei giorni.`);
+          conflicts.push(`${p.profiles?.full_name || "Una persona"} ha già lo shooting "${s.shoot_name}" di ${s.projects?.client_name || "—"} in quei giorni.`);
         }
       });
     });
@@ -321,7 +321,7 @@
     (products || []).forEach(p => {
       if (!checkedIds.includes(p.assigned_to)) return;
       if (dateList.includes(p.review_due_date) || dateList.includes(p.publish_date)) {
-        conflicts.push(`${p.profiles?.full_name || "Una persona"} ha già una consegna prodotto ("${p.product_name}") in quei giorni.`);
+        conflicts.push(`${p.profiles?.full_name || "Una persona"} ha già una consegna prodotto ("${p.product_name}") di ${p.projects?.client_name || "—"} in quei giorni.`);
       }
     });
 

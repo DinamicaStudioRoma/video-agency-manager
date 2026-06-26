@@ -263,8 +263,8 @@
     const conflicts = [];
 
     const [{ data: shoots }, { data: products }, { data: offs }] = await Promise.all([
-      supabaseClient.from("shootings").select("shoot_date, shoot_end_date, shoot_name, shooting_participants(profile_id)"),
-      supabaseClient.from("video_products").select("review_due_date, publish_date, product_name, assigned_to"),
+      supabaseClient.from("shootings").select("shoot_date, shoot_end_date, shoot_name, projects(client_name), shooting_participants(profile_id)"),
+      supabaseClient.from("video_products").select("review_due_date, publish_date, product_name, assigned_to, projects(client_name)"),
       supabaseClient.from("days_off").select("profile_id, off_date"),
     ]);
 
@@ -275,14 +275,14 @@
       if (!isParticipant) return;
       const span = getDateRange(s.shoot_date, s.shoot_end_date || s.shoot_date);
       if (dateList.some(d => span.includes(d))) {
-        conflicts.push(`${personName} ha già lo shooting "${s.shoot_name}" in quei giorni.`);
+        conflicts.push(`${personName} ha già lo shooting "${s.shoot_name}" di ${s.projects?.client_name || "—"} in quei giorni.`);
       }
     });
 
     (products || []).forEach(p => {
       if (p.assigned_to !== assignedTo) return;
       if (dateList.includes(p.review_due_date) || dateList.includes(p.publish_date)) {
-        conflicts.push(`${personName} ha già una consegna prodotto ("${p.product_name}") in quei giorni.`);
+        conflicts.push(`${personName} ha già una consegna prodotto ("${p.product_name}") di ${p.projects?.client_name || "—"} in quei giorni.`);
       }
     });
 

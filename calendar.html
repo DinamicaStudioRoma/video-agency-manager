@@ -137,6 +137,7 @@
   .pill-MEDIO { background: var(--warning); }
   .pill-IMPEGNATIVO { background: var(--danger); color: #fff; }
   .pill-online { background: #6FA8DC; }
+  .pill-off { background: #B98EF2; }
 
   .agenda-title {
     font-family: var(--font-display);
@@ -150,6 +151,7 @@
   .agenda-card.accent-MEDIO { border-left-color: var(--warning); }
   .agenda-card.accent-IMPEGNATIVO { border-left-color: var(--danger); }
   .agenda-card.accent-online { border-left-color: #6FA8DC; }
+  .agenda-card.accent-off { border-left-color: #B98EF2; }
 
   .legend {
     display: flex;
@@ -204,9 +206,11 @@
     <span><span class="pill pill-MEDIO">✂️</span> Revisione media</span>
     <span><span class="pill pill-IMPEGNATIVO">✂️</span> Revisione impegnativa</span>
     <span><span class="pill pill-online">🚀</span> Va online</span>
+    <span><span class="pill pill-off">🌴</span> OFF</span>
   </div>
 
   <h3 class="agenda-title" id="agenda-title">Oggi</h3>
+  <div id="off-toggle-box" style="margin-bottom:14px;"></div>
   <div id="agenda-list">
     <p style="color:var(--text-dim); font-size:14px;">Caricamento...</p>
   </div>
@@ -219,7 +223,7 @@
   let currentProfile = null;
   let viewedYear, viewedMonth;
   let selectedDateStr;
-  let dayData = {}; // { "yyyy-mm-dd": { shootings: [], reviews: [], publish: [] } }
+  let dayData = {}; // { "yyyy-mm-dd": { shootings: [], reviews: [], publish: [], off: [] } }
   let selectedPeopleIds = new Set(); // vuoto = tutti
   let taskTypeFilter = "all"; // all | shooting | product
 
@@ -386,12 +390,24 @@
       });
     }
 
+    // --- Giorni OFF: sempre mostrati, indipendentemente dal filtro tipo di task ---
+    const { data: offDays } = await supabaseClient
+      .from("days_off")
+      .select("profile_id, off_date, profiles(full_name)")
+      .gte("off_date", rangeStart)
+      .lte("off_date", rangeEnd);
+
+    (offDays || []).forEach(o => {
+      if (selectedPeopleIds.size > 0 && !selectedPeopleIds.has(o.profile_id)) return;
+      addToDay(o.off_date, "off", o);
+    });
+
     renderGrid();
     renderAgenda(selectedDateStr);
   }
 
   function addToDay(dateStr, key, item) {
-    if (!dayData[dateStr]) dayData[dateStr] = { shootings: [], reviews: [], publish: [] };
+    if (!dayData[dateStr]) dayData[dateStr] = { shootings: [], reviews: [], publish: [], off: [] };
     dayData[dateStr][key].push(item);
   }
 
@@ -406,7 +422,7 @@
 
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = toISODate(new Date(viewedYear, viewedMonth, day));
-      const data = dayData[dateStr] || { shootings: [], reviews: [], publish: [] };
+      const data = dayData[dateStr] || { shootings: [], reviews: [], publish: [], off: [] };
 
       let classes = "day-cell";
       if (dateStr === todayStr) classes += " today";
@@ -422,6 +438,9 @@
       }
       if (data.publish.length) {
         pills += `<span class="pill pill-online">🚀${data.publish.length > 1 ? data.publish.length : ""}</span>`;
+      }
+      if (data.off.length) {
+        pills += `<span class="pill pill-off">🌴${data.off.length > 1 ? data.off.length : ""}</span>`;
       }
 
       html += `
@@ -458,7 +477,7 @@
     const niceDate = new Date(dateStr + "T00:00:00").toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" });
     title.textContent = dateStr === todayStr ? `Oggi · ${niceDate}` : niceDate;
 
-    const data = dayData[dateStr] || { shootings: [], reviews: [], publish: [] };
+    const data = dayData[dateStr] || { shootings: [], reviews: [], publish: [], off: [] };
     const container = document.getElementById("agenda-list");
     const items = [];
 
@@ -511,9 +530,39 @@
       `);
     });
 
+    if (data.off.length) {
+      const offNames = data.off.map(o => o.profiles?.full_name).filter(Boolean).join(", ");
+      items.push(`
+        <div class="card agenda-card accent-off" style="margin-bottom:12px;">
+          <div class="list-row-title">🌴 OFF</div>
+          <div class="list-row-sub">${offNames || "—"}</div>
+        </div>
+      `);
+    }
+
     container.innerHTML = items.length
       ? items.join("")
       : `<p style="color:var(--text-dim); font-size:14px;">Nessun impegno in questo giorno.</p>`;
+
+    renderOffToggle(dateStr, data);
+  }
+
+  function renderOffToggle(dateStr, data) {
+    const box = document.getElementById("off-toggle-box");
+    const amOff = (data.off || []).some(o => o.profile_id === currentProfile.id);
+
+    box.innerHTML = amOff
+      ? `<button class="btn btn-ghost" id="off-toggle-btn" style="width:100%;">✅ Sei OFF questo giorno — tocca per annullare</button>`
+      : `<button class="btn btn-ghost" id="off-toggle-btn" style="width:100%;">🌴 Segnami OFF questo giorno</button>`;
+
+    document.getElementById("off-toggle-btn").addEventListener("click", async () => {
+      if (amOff) {
+        await supabaseClient.from("days_off").delete().eq("profile_id", currentProfile.id).eq("off_date", dateStr);
+      } else {
+        await supabaseClient.from("days_off").insert({ profile_id: currentProfile.id, off_date: dateStr });
+      }
+      await loadMonthData();
+    });
   }
 </script>
 </body>

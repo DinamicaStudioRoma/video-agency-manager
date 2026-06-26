@@ -63,14 +63,19 @@
     return `${day}/${m}/${y}`;
   }
 
+  function formatDateTime(iso) {
+    if (!iso) return "—";
+    return new Date(iso).toLocaleString("it-IT", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  }
+
   async function loadHistory() {
     let shootQuery = supabaseClient
       .from("shooting_participants")
-      .select("id, status, profile_id, profiles(full_name), shootings(shoot_name, shoot_date, created_at, projects(client_name))");
+      .select("id, status, responded_at, profile_id, profiles(full_name), shootings(shoot_name, shoot_date, created_at, projects(client_name), creator:created_by(full_name))");
 
     let productQuery = supabaseClient
       .from("video_products")
-      .select("id, product_name, review_due_date, assignment_status, assigned_to, created_at, projects(client_name), profiles:assigned_to(full_name)");
+      .select("id, product_name, review_due_date, assignment_status, assignment_responded_at, assigned_to, created_at, projects(client_name), assignee:assigned_to(full_name), creator:created_by(full_name)");
 
     if (currentProfile.role === "operatore") {
       shootQuery = shootQuery.eq("profile_id", currentProfile.id);
@@ -97,6 +102,9 @@
         date: s.shootings.shoot_date,
         person: s.profiles ? s.profiles.full_name : "—",
         status: s.status,
+        assignedBy: s.shootings.creator ? s.shootings.creator.full_name : "—",
+        assignedAt: s.shootings.created_at,
+        respondedAt: s.responded_at,
         sortKey: s.shootings.created_at,
       });
     });
@@ -108,8 +116,11 @@
         title: p.product_name,
         client: p.projects ? p.projects.client_name : "—",
         date: p.review_due_date,
-        person: p.profiles ? p.profiles.full_name : "—",
+        person: p.assignee ? p.assignee.full_name : "—",
         status: p.assignment_status,
+        assignedBy: p.creator ? p.creator.full_name : "—",
+        assignedAt: p.created_at,
+        respondedAt: p.assignment_responded_at,
         sortKey: p.created_at,
       });
     });
@@ -138,7 +149,11 @@
           <span>🏛️ ${r.client}</span>
           <span>📅 ${formatDate(r.date)}</span>
         </div>
-        <div class="list-row-sub">${r.person} <span class="status-badge status-${r.status}">${r.status}</span></div>
+        <div class="list-row-sub">
+          ${r.person} <span class="status-badge status-${r.status}">${r.status}</span><br>
+          Assegnato da ${r.assignedBy} il ${formatDateTime(r.assignedAt)}
+          ${r.respondedAt ? `<br>Risposto il ${formatDateTime(r.respondedAt)}` : ""}
+        </div>
       </div>
     `).join("");
 

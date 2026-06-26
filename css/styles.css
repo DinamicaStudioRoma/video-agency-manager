@@ -332,6 +332,22 @@ a { color: inherit; }
 }
 .modal-actions .btn { flex: 1; }
 
+/* --- Etichette di stato accettazione (shooting/prodotti) --- */
+.status-badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 4px;
+  white-space: nowrap;
+}
+.status-ACCETTATO { background: rgba(79,174,126,0.15); color: var(--success); border: 1px solid rgba(79,174,126,0.4); }
+.status-PENDING { background: rgba(224,169,62,0.15); color: var(--warning); border: 1px solid rgba(224,169,62,0.4); }
+.status-RIFIUTATO { background: rgba(224,82,76,0.15); color: var(--danger); border: 1px solid rgba(224,82,76,0.4); }
+
 /* --- Riga meta delle card (cliente + data): più visibile dei dettagli secondari --- */
 .card-meta {
   display: flex;

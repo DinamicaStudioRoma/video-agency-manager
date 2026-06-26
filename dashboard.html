@@ -25,8 +25,13 @@
     <span class="tag" id="role-tag">RUOLO</span>
   </div>
 
+  <div id="pending-section" style="margin-top:28px; display:none;">
+    <div class="section-title" style="margin-top:0;">Task da confermare</div>
+    <div id="pending-list"></div>
+  </div>
+
   <div id="alerts-section" style="margin-top:28px; display:none;">
-    <div class="section-title">Alert contrattuali</div>
+    <div class="section-title" style="margin-top:0;">Alert contrattuali</div>
     <div id="alerts-list"></div>
   </div>
 
@@ -71,7 +76,97 @@
     if (profile.role === "admin" || profile.role === "project_manager") {
       loadContractAlerts(profile);
     }
+
+    loadPendingTasks(profile);
   })();
+
+  function formatDate(d) {
+    if (!d) return "—";
+    const [y, m, day] = d.split("-");
+    return `${day}/${m}/${y}`;
+  }
+
+  async function loadPendingTasks(profile) {
+    const [{ data: pendingShoots }, { data: pendingProducts }] = await Promise.all([
+      supabaseClient
+        .from("shooting_participants")
+        .select("id, status, shootings(shoot_name, shoot_date, shoot_end_date, call_time, location, projects(client_name))")
+        .eq("profile_id", profile.id)
+        .eq("status", "PENDING"),
+      supabaseClient
+        .from("video_products")
+        .select("id, product_name, review_due_date, publish_date, assignment_status, projects(client_name)")
+        .eq("assigned_to", profile.id)
+        .eq("assignment_status", "PENDING"),
+    ]);
+
+    const items = [];
+
+    (pendingShoots || []).forEach(ps => {
+      if (!ps.shootings) return;
+      const dateLabel = formatDate(ps.shootings.shoot_date) + (ps.shootings.shoot_end_date && ps.shootings.shoot_end_date > ps.shootings.shoot_date ? " → " + formatDate(ps.shootings.shoot_end_date) : "");
+      items.push({
+        icon: "🎬",
+        type: "shooting",
+        id: ps.id,
+        title: ps.shootings.shoot_name,
+        client: ps.shootings.projects ? ps.shootings.projects.client_name : "—",
+        dateLabel,
+        sub: `${ps.shootings.call_time} · ${ps.shootings.location}`,
+      });
+    });
+
+    (pendingProducts || []).forEach(p => {
+      items.push({
+        icon: "✂️",
+        type: "product",
+        id: p.id,
+        title: p.product_name,
+        client: p.projects ? p.projects.client_name : "—",
+        dateLabel: formatDate(p.review_due_date),
+        sub: `Va online: ${formatDate(p.publish_date)}`,
+      });
+    });
+
+    const section = document.getElementById("pending-section");
+    const list = document.getElementById("pending-list");
+
+    if (!items.length) {
+      section.style.display = "none";
+      return;
+    }
+
+    section.style.display = "block";
+    list.innerHTML = items.map(item => `
+      <div class="card" style="margin-bottom:12px; border-left:3px solid var(--warning);">
+        <div class="list-row-title">${item.icon} ${item.title}</div>
+        <div class="card-meta">
+          <span>🏛️ ${item.client}</span>
+          <span>📅 ${item.dateLabel}</span>
+        </div>
+        <div class="list-row-sub" style="margin-bottom:10px;">${item.sub}</div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-primary" style="flex:1; background:var(--success);" data-action="accept" data-type="${item.type}" data-id="${item.id}">✅ Accetta</button>
+          <button class="btn btn-ghost" style="flex:1; border-color:var(--danger); color:var(--danger);" data-action="reject" data-type="${item.type}" data-id="${item.id}">❌ Rifiuta</button>
+        </div>
+      </div>
+    `).join("");
+
+    list.querySelectorAll("[data-action]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const newStatus = btn.dataset.action === "accept" ? "ACCETTATO" : "RIFIUTATO";
+        btn.parentElement.querySelectorAll("button").forEach(b => b.disabled = true);
+
+        if (btn.dataset.type === "shooting") {
+          await supabaseClient.from("shooting_participants").update({ status: newStatus }).eq("id", btn.dataset.id);
+        } else {
+          await supabaseClient.from("video_products").update({ assignment_status: newStatus }).eq("id", btn.dataset.id);
+        }
+
+        loadPendingTasks(profile);
+      });
+    });
+  }
 
   async function loadContractAlerts(profile) {
     let projectsQuery = supabaseClient.from("projects").select("*");

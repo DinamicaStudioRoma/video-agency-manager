@@ -207,7 +207,7 @@
   async function loadShootings() {
     const { data, error } = await supabaseClient
       .from("shootings")
-      .select("*, projects(client_name, project_name), shooting_participants(profiles(full_name))");
+      .select("*, projects(client_name, project_name), shooting_participants(status, profiles(full_name))");
 
     const container = document.getElementById("shoots-list");
     if (error) {
@@ -232,7 +232,10 @@
     done.sort((a, b) => b.shoot_date.localeCompare(a.shoot_date));
 
     const renderCard = (s) => {
-      const names = (s.shooting_participants || []).map(p => p.profiles?.full_name).filter(Boolean).join(", ");
+      const names = (s.shooting_participants || [])
+        .filter(p => p.profiles?.full_name)
+        .map(p => `${p.profiles.full_name} <span class="status-badge status-${p.status}">${p.status}</span>`)
+        .join(", ");
       const dateLabel = formatDate(s.shoot_date) + (s.shoot_end_date ? " → " + formatDate(s.shoot_end_date) : "");
       return `
         <div class="card" style="margin-bottom:12px;">

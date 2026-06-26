@@ -348,7 +348,7 @@
 
       const { data: shoots } = await supabaseClient
         .from("shootings")
-        .select("*, projects(client_name), shooting_participants(profile_id, profiles(full_name))")
+        .select("*, projects(client_name), shooting_participants(profile_id, status, profiles(full_name))")
         .gte("shoot_date", queryBufferStart)
         .lte("shoot_date", rangeEnd);
 
@@ -482,7 +482,10 @@
     const items = [];
 
     data.shootings.forEach(s => {
-      const names = (s.shooting_participants || []).map(p => p.profiles?.full_name).filter(Boolean).join(", ");
+      const names = (s.shooting_participants || [])
+        .filter(p => p.profiles?.full_name)
+        .map(p => `${p.profiles.full_name} <span class="status-badge status-${p.status}">${p.status}</span>`)
+        .join(", ");
       const dateLabel = formatDate(s.shoot_date) + (s.shoot_end_date && s.shoot_end_date > s.shoot_date ? " → " + formatDate(s.shoot_end_date) : "");
       items.push(`
         <div class="card agenda-card accent-shoot" style="margin-bottom:12px;">
@@ -508,7 +511,7 @@
             <span>📅 ${formatDate(p.review_due_date)}</span>
           </div>
           <div class="list-row-sub">
-            Assegnato a: ${p.profiles ? p.profiles.full_name : "—"}<br>
+            Assegnato a: ${p.profiles ? p.profiles.full_name : "—"} <span class="status-badge status-${p.assignment_status}">${p.assignment_status}</span><br>
             Difficoltà: ${p.difficulty} · Ore di lavorazione: ${p.work_hours}
           </div>
         </div>

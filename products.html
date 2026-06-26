@@ -204,7 +204,7 @@
           <span>📅 Revisione: ${formatDate(p.review_due_date)}</span>
         </div>
         <div class="list-row-sub">
-          Assegnato a: ${p.profiles ? p.profiles.full_name : "—"}<br>
+          Assegnato a: ${p.profiles ? p.profiles.full_name : "—"} <span class="status-badge status-${p.assignment_status}">${p.assignment_status}</span><br>
           Online: ${formatDate(p.publish_date)} · Ore di lavorazione: ${p.work_hours} ${p.work_hours === 1 ? "ora" : "ore"}
         </div>
       </div>

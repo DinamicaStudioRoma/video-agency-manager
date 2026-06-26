@@ -144,21 +144,12 @@
     margin: 24px 0 12px;
     text-transform: capitalize;
   }
-  .agenda-item {
-    display: flex;
-    gap: 12px;
-    padding: 12px 0;
-    border-bottom: 1px solid var(--border);
-  }
-  .agenda-item:last-child { border-bottom: none; }
-  .agenda-icon { width: 8px; border-radius: 4px; flex-shrink: 0; }
-  .agenda-icon.shoot { background: var(--accent); }
-  .agenda-icon.VELOCE { background: var(--success); }
-  .agenda-icon.MEDIO { background: var(--warning); }
-  .agenda-icon.IMPEGNATIVO { background: var(--danger); }
-  .agenda-icon.online { background: #6FA8DC; }
-  .agenda-item-title { font-weight: 600; font-size: 14px; }
-  .agenda-item-sub { font-size: 13px; color: var(--text-dim); margin-top: 2px; }
+  .agenda-card { border-left: 3px solid transparent; }
+  .agenda-card.accent-shoot { border-left-color: var(--accent); }
+  .agenda-card.accent-VELOCE { border-left-color: var(--success); }
+  .agenda-card.accent-MEDIO { border-left-color: var(--warning); }
+  .agenda-card.accent-IMPEGNATIVO { border-left-color: var(--danger); }
+  .agenda-card.accent-online { border-left-color: #6FA8DC; }
 
   .legend {
     display: flex;
@@ -473,18 +464,17 @@
 
     data.shootings.forEach(s => {
       const names = (s.shooting_participants || []).map(p => p.profiles?.full_name).filter(Boolean).join(", ");
-      const multiDayNote = s.shoot_end_date && s.shoot_end_date > s.shoot_date
-        ? ` (giorno impegnato: ${formatDate(s.shoot_date)} → ${formatDate(s.shoot_end_date)})`
-        : "";
+      const dateLabel = formatDate(s.shoot_date) + (s.shoot_end_date && s.shoot_end_date > s.shoot_date ? " → " + formatDate(s.shoot_end_date) : "");
       items.push(`
-        <div class="agenda-item">
-          <div class="agenda-icon shoot"></div>
-          <div>
-            <div class="agenda-item-title">🎬 ${s.shoot_name}</div>
-            <div class="agenda-item-sub">
-              ${s.projects ? s.projects.client_name : "—"} · ${s.call_time} · ${s.location}<br>
-              Durata: ${s.duration_hours} ore${multiDayNote ? "/giorno" : ""}${multiDayNote} · Convocati: ${names || "—"}
-            </div>
+        <div class="card agenda-card accent-shoot" style="margin-bottom:12px;">
+          <div class="list-row-title">🎬 ${s.shoot_name}</div>
+          <div class="card-meta">
+            <span>🏛️ ${s.projects ? s.projects.client_name : "—"}</span>
+            <span>📅 ${dateLabel}</span>
+          </div>
+          <div class="list-row-sub">
+            ${s.call_time} · ${s.location} · ${s.duration_hours} ore${s.shoot_end_date ? "/giorno" : ""}<br>
+            Convocati: ${names || "—"}
           </div>
         </div>
       `);
@@ -492,14 +482,15 @@
 
     data.reviews.forEach(p => {
       items.push(`
-        <div class="agenda-item">
-          <div class="agenda-icon ${p.difficulty}"></div>
-          <div>
-            <div class="agenda-item-title">✂️ ${p.product_name} — pronto per revisione</div>
-            <div class="agenda-item-sub">
-              ${p.projects ? p.projects.client_name : "—"} · ${p.profiles ? p.profiles.full_name : "—"}<br>
-              Difficoltà: ${p.difficulty} · Ore di lavorazione: ${p.work_hours}
-            </div>
+        <div class="card agenda-card accent-${p.difficulty}" style="margin-bottom:12px;">
+          <div class="list-row-title">✂️ ${p.product_name} — pronto per revisione</div>
+          <div class="card-meta">
+            <span>🏛️ ${p.projects ? p.projects.client_name : "—"}</span>
+            <span>📅 ${formatDate(p.review_due_date)}</span>
+          </div>
+          <div class="list-row-sub">
+            Assegnato a: ${p.profiles ? p.profiles.full_name : "—"}<br>
+            Difficoltà: ${p.difficulty} · Ore di lavorazione: ${p.work_hours}
           </div>
         </div>
       `);
@@ -507,13 +498,14 @@
 
     data.publish.forEach(p => {
       items.push(`
-        <div class="agenda-item">
-          <div class="agenda-icon online"></div>
-          <div>
-            <div class="agenda-item-title">🚀 ${p.product_name} va online</div>
-            <div class="agenda-item-sub">
-              ${p.projects ? p.projects.client_name : "—"} · ${p.profiles ? p.profiles.full_name : "—"}
-            </div>
+        <div class="card agenda-card accent-online" style="margin-bottom:12px;">
+          <div class="list-row-title">🚀 ${p.product_name} va online</div>
+          <div class="card-meta">
+            <span>🏛️ ${p.projects ? p.projects.client_name : "—"}</span>
+            <span>📅 ${formatDate(p.publish_date)}</span>
+          </div>
+          <div class="list-row-sub">
+            Assegnato a: ${p.profiles ? p.profiles.full_name : "—"}
           </div>
         </div>
       `);

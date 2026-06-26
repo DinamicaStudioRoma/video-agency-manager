@@ -30,6 +30,11 @@
     <div id="pending-list"></div>
   </div>
 
+  <div id="assigned-section" style="margin-top:28px; display:none;">
+    <div class="section-title" style="margin-top:0;">Task assegnati da te</div>
+    <div id="assigned-list"></div>
+  </div>
+
   <div id="alerts-section" style="margin-top:28px; display:none;">
     <div class="section-title" style="margin-top:0;">Alert contrattuali</div>
     <div id="alerts-list"></div>
@@ -78,6 +83,10 @@
     }
 
     loadPendingTasks(profile);
+
+    if (profile.role === "admin" || profile.role === "project_manager") {
+      loadAssignedByMe(profile);
+    }
   })();
 
   function formatDate(d) {
@@ -164,6 +173,88 @@
         }
 
         loadPendingTasks(profile);
+      });
+    });
+  }
+
+  async function loadAssignedByMe(profile) {
+    const [{ data: myShootings }, { data: myProducts }] = await Promise.all([
+      supabaseClient
+        .from("shootings")
+        .select("id, shoot_name, shoot_date, projects(client_name), shooting_participants(id, status, dismissed, profiles(full_name))")
+        .eq("created_by", profile.id),
+      supabaseClient
+        .from("video_products")
+        .select("id, product_name, review_due_date, assignment_status, assignment_dismissed, projects(client_name), profiles:assigned_to(full_name)")
+        .eq("created_by", profile.id)
+        .eq("assignment_dismissed", false),
+    ]);
+
+    const items = [];
+
+    (myShootings || []).forEach(s => {
+      (s.shooting_participants || []).forEach(p => {
+        if (p.dismissed) return;
+        items.push({
+          type: "shooting",
+          id: p.id,
+          icon: "🎬",
+          title: s.shoot_name,
+          client: s.projects ? s.projects.client_name : "—",
+          dateLabel: formatDate(s.shoot_date),
+          person: p.profiles ? p.profiles.full_name : "—",
+          status: p.status,
+        });
+      });
+    });
+
+    (myProducts || []).forEach(p => {
+      items.push({
+        type: "product",
+        id: p.id,
+        icon: "✂️",
+        title: p.product_name,
+        client: p.projects ? p.projects.client_name : "—",
+        dateLabel: formatDate(p.review_due_date),
+        person: p.profiles ? p.profiles.full_name : "—",
+        status: p.assignment_status,
+      });
+    });
+
+    const section = document.getElementById("assigned-section");
+    const list = document.getElementById("assigned-list");
+
+    if (!items.length) {
+      section.style.display = "none";
+      return;
+    }
+
+    section.style.display = "block";
+    list.innerHTML = items.map(item => `
+      <div class="card" style="margin-bottom:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+          <div>
+            <div class="list-row-title">${item.icon} ${item.title}</div>
+            <div class="card-meta">
+              <span>🏛️ ${item.client}</span>
+              <span>📅 ${item.dateLabel}</span>
+            </div>
+            <div class="list-row-sub">${item.person} <span class="status-badge status-${item.status}">${item.status}</span></div>
+          </div>
+          <button class="btn btn-ghost" style="white-space:nowrap;" data-dismiss-type="${item.type}" data-dismiss-id="${item.id}">✓ Nascondi</button>
+        </div>
+      </div>
+    `).join("");
+
+    list.querySelectorAll("[data-dismiss-id]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        btn.disabled = true;
+        if (btn.dataset.dismissType === "shooting") {
+          await supabaseClient.from("shooting_participants").update({ dismissed: true }).eq("id", btn.dataset.dismissId);
+        } else {
+          await supabaseClient.from("video_products").update({ assignment_dismissed: true }).eq("id", btn.dataset.dismissId);
+        }
+        loadAssignedByMe(profile);
       });
     });
   }

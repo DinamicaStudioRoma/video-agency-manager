@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cronologia · Video Agency Manager</title>
+<link rel="stylesheet" href="css/styles.css">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#14161b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  .wrap { max-width: 720px; margin: 0 auto; padding-top: 32px; padding-left: 20px; padding-right: 20px; }
+  .page-title { font-family: var(--font-display); font-size: 24px; margin-bottom: 6px; }
+</style>
+</head>
+<body>
+
+<div class="wrap page-content">
+  <h1 class="page-title">Cronologia</h1>
+  <p style="color:var(--text-dim); margin-bottom: 24px;" id="scope-note">Storico di tutte le assegnazioni</p>
+
+  <div id="history-list">
+    <p style="color:var(--text-dim); font-size:14px;">Caricamento...</p>
+  </div>
+
+  <button class="btn btn-ghost" id="load-more-btn" style="width:100%; margin-top:16px; display:none;">Carica altri</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/layout.js"></script>
+<script>
+  let currentProfile = null;
+  let allRows = [];
+  let visibleCount = 30;
+  const PAGE_SIZE = 30;
+
+  (async () => {
+    await requireAuth();
+    currentProfile = await getCurrentProfile();
+    if (!currentProfile) return;
+
+    renderShell(currentProfile, "history");
+
+    if (currentProfile.role === "operatore") {
+      document.getElementById("scope-note").textContent = "Lo storico dei tuoi task assegnati";
+    }
+
+    await loadHistory();
+
+    document.getElementById("load-more-btn").addEventListener("click", () => {
+      visibleCount += PAGE_SIZE;
+      renderList();
+    });
+  })();
+
+  function formatDate(d) {
+    if (!d) return "—";
+    const [y, m, day] = d.split("-");
+    return `${day}/${m}/${y}`;
+  }
+
+  async function loadHistory() {
+    let shootQuery = supabaseClient
+      .from("shooting_participants")
+      .select("id, status, profile_id, profiles(full_name), shootings(shoot_name, shoot_date, created_at, projects(client_name))");
+
+    let productQuery = supabaseClient
+      .from("video_products")
+      .select("id, product_name, review_due_date, assignment_status, assigned_to, created_at, projects(client_name), profiles:assigned_to(full_name)");
+
+    if (currentProfile.role === "operatore") {
+      shootQuery = shootQuery.eq("profile_id", currentProfile.id);
+      productQuery = productQuery.eq("assigned_to", currentProfile.id);
+    }
+
+    const [{ data: shoots, error: shootError }, { data: products, error: productError }] = await Promise.all([shootQuery, productQuery]);
+
+    const container = document.getElementById("history-list");
+    if (shootError || productError) {
+      container.innerHTML = `<p class="error-msg">Errore nel caricamento: ${(shootError || productError).message}</p>`;
+      return;
+    }
+
+    const rows = [];
+
+    (shoots || []).forEach(s => {
+      if (!s.shootings) return;
+      rows.push({
+        type: "shooting",
+        icon: "🎬",
+        title: s.shootings.shoot_name,
+        client: s.shootings.projects ? s.shootings.projects.client_name : "—",
+        date: s.shootings.shoot_date,
+        person: s.profiles ? s.profiles.full_name : "—",
+        status: s.status,
+        sortKey: s.shootings.created_at,
+      });
+    });
+
+    (products || []).forEach(p => {
+      rows.push({
+        type: "product",
+        icon: "✂️",
+        title: p.product_name,
+        client: p.projects ? p.projects.client_name : "—",
+        date: p.review_due_date,
+        person: p.profiles ? p.profiles.full_name : "—",
+        status: p.assignment_status,
+        sortKey: p.created_at,
+      });
+    });
+
+    rows.sort((a, b) => new Date(b.sortKey) - new Date(a.sortKey));
+    allRows = rows;
+    renderList();
+  }
+
+  function renderList() {
+    const container = document.getElementById("history-list");
+    const loadMoreBtn = document.getElementById("load-more-btn");
+
+    if (!allRows.length) {
+      container.innerHTML = `<div class="card"><p style="color:var(--text-dim); font-size:14px;">Nessuna assegnazione ancora.</p></div>`;
+      loadMoreBtn.style.display = "none";
+      return;
+    }
+
+    const visible = allRows.slice(0, visibleCount);
+
+    container.innerHTML = visible.map(r => `
+      <div class="card" style="margin-bottom:12px;">
+        <div class="list-row-title">${r.icon} ${r.title}</div>
+        <div class="card-meta">
+          <span>🏛️ ${r.client}</span>
+          <span>📅 ${formatDate(r.date)}</span>
+        </div>
+        <div class="list-row-sub">${r.person} <span class="status-badge status-${r.status}">${r.status}</span></div>
+      </div>
+    `).join("");
+
+    loadMoreBtn.style.display = allRows.length > visibleCount ? "block" : "none";
+  }
+</script>
+</body>
+</html>

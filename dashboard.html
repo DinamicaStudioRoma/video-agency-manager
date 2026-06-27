@@ -127,14 +127,24 @@
 
         if (result === "granted") {
           debugEl.textContent = "Permesso concesso! Registrazione in corso...";
-          document.getElementById("push-banner").style.display = "none";
 
           // Ora che il permesso c'è già, diciamo a OneSignal di registrare l'iscrizione
           window.OneSignalDeferred = window.OneSignalDeferred || [];
           window.OneSignalDeferred.push(async function (OneSignal) {
             try {
               await OneSignal.User.PushSubscription.optIn();
-              debugEl.textContent = "Notifiche attivate correttamente!";
+
+              // Aspettiamo un istante e controlliamo se è stato ottenuto un token vero
+              await new Promise(resolve => setTimeout(resolve, 2000));
+              const token = OneSignal.User.PushSubscription.token;
+              const subId = OneSignal.User.PushSubscription.id;
+
+              if (token) {
+                debugEl.textContent = "Notifiche attivate correttamente! (token ottenuto)";
+                document.getElementById("push-banner").style.display = "none";
+              } else {
+                debugEl.textContent = "Permesso concesso, ma nessun token ricevuto ancora (subscription id: " + (subId || "nessuno") + "). Riprova tra poco, o segnalami questo messaggio esatto.";
+              }
             } catch (e) {
               debugEl.textContent = "Permesso concesso, ma errore nella registrazione: " + e.message;
             }

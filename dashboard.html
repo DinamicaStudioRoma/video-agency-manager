@@ -29,6 +29,7 @@
     <div class="list-row-title">🔔 Attiva le notifiche</div>
     <p style="color:var(--text-dim); font-size:13px; margin:6px 0 12px;">Ricevi un avviso sul telefono quando ti viene assegnato un nuovo shooting o prodotto.</p>
     <button class="btn btn-primary" id="enable-push-btn" style="width:100%;">Attiva notifiche</button>
+    <p id="push-debug" style="font-size:12px; color:var(--text-dim); margin-top:8px; margin-bottom:0;"></p>
   </div>
 
   <div id="pending-section" style="margin-top:28px; display:none;">
@@ -105,8 +106,11 @@
     }
 
     document.getElementById("enable-push-btn").addEventListener("click", () => {
+      const debugEl = document.getElementById("push-debug");
+      debugEl.textContent = "";
+
       if (Notification.permission === "denied") {
-        alert("Le notifiche risultano già bloccate per questo sito a livello di telefono/browser. Devi riattivarle manualmente dalle impostazioni (Safari/Chrome → Impostazioni sito → Notifiche), poi ricaricare l'app.");
+        debugEl.textContent = "Le notifiche risultano già bloccate per questo sito a livello di telefono/browser. Vanno riattivate manualmente dalle impostazioni (Safari/Chrome → Impostazioni sito → Notifiche), poi ricarica l'app.";
         return;
       }
 
@@ -115,7 +119,7 @@
       btn.textContent = "Attivazione in corso...";
 
       const timeoutCheck = setTimeout(() => {
-        alert("OneSignal non ha risposto entro 6 secondi: probabilmente lo script non si è caricato (connessione, ad-blocker, o errore di configurazione). Riprova, o segnalami questo messaggio.");
+        debugEl.textContent = "OneSignal non ha risposto entro 6 secondi: probabilmente lo script non si è caricato (connessione, ad-blocker, o errore di configurazione).";
         btn.disabled = false;
         btn.textContent = "Attiva notifiche";
       }, 6000);
@@ -128,14 +132,15 @@
           btn.disabled = false;
           btn.textContent = "Attiva notifiche";
           if (Notification.permission === "granted") {
+            debugEl.textContent = "Notifiche attivate correttamente!";
             document.getElementById("push-banner").style.display = "none";
           } else {
-            alert("Permesso non concesso (stato: " + Notification.permission + "). Se hai chiuso il popup senza scegliere, riprova.");
+            debugEl.textContent = "Permesso non concesso (stato: " + Notification.permission + "). Se hai chiuso il popup senza scegliere, riprova.";
           }
         } catch (err) {
           btn.disabled = false;
           btn.textContent = "Attiva notifiche";
-          alert("Errore durante l'attivazione: " + err.message);
+          debugEl.textContent = "Errore durante l'attivazione: " + err.message;
         }
       });
     });

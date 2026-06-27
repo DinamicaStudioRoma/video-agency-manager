@@ -1,8 +1,10 @@
 // ============================================================
 // SERVICE WORKER — Video Agency Manager
-// Per ora: abilita l'installazione come app sul telefono.
-// La gestione delle notifiche push verrà aggiunta in seguito.
+// Abilita l'installazione come app sul telefono E le notifiche push
+// (tramite il motore di OneSignal, integrato qui per evitare conflitti)
 // ============================================================
+
+importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDKWorker.js");
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();

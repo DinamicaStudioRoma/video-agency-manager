@@ -3,9 +3,9 @@
 // Si adatta in base al ruolo dell'utente loggato
 // ============================================================
 
-// Registra il service worker (necessario per installare l'app sul telefono)
+// Registra il service worker (necessario per installare l'app sul telefono e per le notifiche push)
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js").catch(err => console.error("SW registration failed:", err));
+  navigator.serviceWorker.register("OneSignalSDKWorker.js").catch(err => console.error("SW registration failed:", err));
 }
 
 const ONESIGNAL_APP_ID = "032a6460-c15e-4c3d-895e-f622ad3951a8";
@@ -23,8 +23,7 @@ function initPushNotifications(profile) {
   window.OneSignalDeferred.push(async function (OneSignal) {
     await OneSignal.init({
       appId: ONESIGNAL_APP_ID,
-      serviceWorkerPath: "sw.js",
-      serviceWorkerParam: { scope: "/" },
+      safari_web_id: "web.onesignal.auto.512e7622-1d45-4df4-947f-a5316fda3b8e",
     });
     await OneSignal.login(profile.id);
   });

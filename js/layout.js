@@ -8,7 +8,30 @@ if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("sw.js").catch(err => console.error("SW registration failed:", err));
 }
 
+const ONESIGNAL_APP_ID = "032a6460-c15e-4c3d-895e-f622ad3951a8";
+
+// Carica e inizializza OneSignal (notifiche push), collegandolo al profilo dell'utente loggato
+function initPushNotifications(profile) {
+  if (!window.OneSignalDeferred) {
+    window.OneSignalDeferred = [];
+    const script = document.createElement("script");
+    script.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";
+    script.defer = true;
+    document.head.appendChild(script);
+  }
+
+  window.OneSignalDeferred.push(async function (OneSignal) {
+    await OneSignal.init({
+      appId: ONESIGNAL_APP_ID,
+      serviceWorkerPath: "sw.js",
+      serviceWorkerParam: { scope: "/" },
+    });
+    await OneSignal.login(profile.id);
+  });
+}
+
 function renderShell(profile, activePage) {
+  initPushNotifications(profile);
   // --- Topbar ---
   const topbar = document.createElement("div");
   topbar.className = "topbar";

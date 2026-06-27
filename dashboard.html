@@ -105,11 +105,37 @@
     }
 
     document.getElementById("enable-push-btn").addEventListener("click", () => {
+      if (Notification.permission === "denied") {
+        alert("Le notifiche risultano già bloccate per questo sito a livello di telefono/browser. Devi riattivarle manualmente dalle impostazioni (Safari/Chrome → Impostazioni sito → Notifiche), poi ricaricare l'app.");
+        return;
+      }
+
+      const btn = document.getElementById("enable-push-btn");
+      btn.disabled = true;
+      btn.textContent = "Attivazione in corso...";
+
+      const timeoutCheck = setTimeout(() => {
+        alert("OneSignal non ha risposto entro 6 secondi: probabilmente lo script non si è caricato (connessione, ad-blocker, o errore di configurazione). Riprova, o segnalami questo messaggio.");
+        btn.disabled = false;
+        btn.textContent = "Attiva notifiche";
+      }, 6000);
+
       window.OneSignalDeferred = window.OneSignalDeferred || [];
       window.OneSignalDeferred.push(async function (OneSignal) {
-        await OneSignal.Notifications.requestPermission();
-        if (Notification.permission === "granted") {
-          document.getElementById("push-banner").style.display = "none";
+        clearTimeout(timeoutCheck);
+        try {
+          await OneSignal.Notifications.requestPermission();
+          btn.disabled = false;
+          btn.textContent = "Attiva notifiche";
+          if (Notification.permission === "granted") {
+            document.getElementById("push-banner").style.display = "none";
+          } else {
+            alert("Permesso non concesso (stato: " + Notification.permission + "). Se hai chiuso il popup senza scegliere, riprova.");
+          }
+        } catch (err) {
+          btn.disabled = false;
+          btn.textContent = "Attiva notifiche";
+          alert("Errore durante l'attivazione: " + err.message);
         }
       });
     });

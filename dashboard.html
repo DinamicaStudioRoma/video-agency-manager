@@ -105,8 +105,9 @@
       document.getElementById("push-banner").style.display = "block";
     }
 
-    document.getElementById("enable-push-btn").addEventListener("click", () => {
+    document.getElementById("enable-push-btn").addEventListener("click", async () => {
       const debugEl = document.getElementById("push-debug");
+      const btn = document.getElementById("enable-push-btn");
       debugEl.textContent = "";
 
       if (Notification.permission === "denied") {
@@ -114,35 +115,38 @@
         return;
       }
 
-      const btn = document.getElementById("enable-push-btn");
       btn.disabled = true;
       btn.textContent = "Attivazione in corso...";
 
-      const timeoutCheck = setTimeout(() => {
-        debugEl.textContent = "OneSignal non ha risposto entro 6 secondi: probabilmente lo script non si è caricato (connessione, ad-blocker, o errore di configurazione).";
+      try {
+        // Chiamata diretta al browser (nessun intermediario): è l'unico modo
+        // per non perdere il collegamento col tocco dell'utente su iPhone
+        const result = await Notification.requestPermission();
         btn.disabled = false;
         btn.textContent = "Attiva notifiche";
-      }, 6000);
 
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-      window.OneSignalDeferred.push(async function (OneSignal) {
-        clearTimeout(timeoutCheck);
-        try {
-          await OneSignal.Notifications.requestPermission();
-          btn.disabled = false;
-          btn.textContent = "Attiva notifiche";
-          if (Notification.permission === "granted") {
-            debugEl.textContent = "Notifiche attivate correttamente!";
-            document.getElementById("push-banner").style.display = "none";
-          } else {
-            debugEl.textContent = "Permesso non concesso (stato: " + Notification.permission + "). Se hai chiuso il popup senza scegliere, riprova.";
-          }
-        } catch (err) {
-          btn.disabled = false;
-          btn.textContent = "Attiva notifiche";
-          debugEl.textContent = "Errore durante l'attivazione: " + err.message;
+        if (result === "granted") {
+          debugEl.textContent = "Permesso concesso! Registrazione in corso...";
+          document.getElementById("push-banner").style.display = "none";
+
+          // Ora che il permesso c'è già, diciamo a OneSignal di registrare l'iscrizione
+          window.OneSignalDeferred = window.OneSignalDeferred || [];
+          window.OneSignalDeferred.push(async function (OneSignal) {
+            try {
+              await OneSignal.User.PushSubscription.optIn();
+              debugEl.textContent = "Notifiche attivate correttamente!";
+            } catch (e) {
+              debugEl.textContent = "Permesso concesso, ma errore nella registrazione: " + e.message;
+            }
+          });
+        } else {
+          debugEl.textContent = "Permesso non concesso (stato: " + result + ").";
         }
-      });
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = "Attiva notifiche";
+        debugEl.textContent = "Errore: " + err.message;
+      }
     });
   }
 

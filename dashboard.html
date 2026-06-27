@@ -25,6 +25,12 @@
     <span class="tag" id="role-tag">RUOLO</span>
   </div>
 
+  <div id="push-banner" style="display:none; margin-top:20px;" class="card">
+    <div class="list-row-title">🔔 Attiva le notifiche</div>
+    <p style="color:var(--text-dim); font-size:13px; margin:6px 0 12px;">Ricevi un avviso sul telefono quando ti viene assegnato un nuovo shooting o prodotto.</p>
+    <button class="btn btn-primary" id="enable-push-btn" style="width:100%;">Attiva notifiche</button>
+  </div>
+
   <div id="pending-section" style="margin-top:28px; display:none;">
     <div class="section-title" style="margin-top:0;">Task da confermare</div>
     <div id="pending-list"></div>
@@ -87,7 +93,27 @@
     if (profile.role === "admin" || profile.role === "project_manager") {
       loadAssignedByMe(profile);
     }
+
+    setupPushBanner();
   })();
+
+  function setupPushBanner() {
+    if (!("Notification" in window)) return; // browser non supportato
+
+    if (Notification.permission !== "granted") {
+      document.getElementById("push-banner").style.display = "block";
+    }
+
+    document.getElementById("enable-push-btn").addEventListener("click", () => {
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      window.OneSignalDeferred.push(async function (OneSignal) {
+        await OneSignal.Notifications.requestPermission();
+        if (Notification.permission === "granted") {
+          document.getElementById("push-banner").style.display = "none";
+        }
+      });
+    });
+  }
 
   function formatDate(d) {
     if (!d) return "—";
